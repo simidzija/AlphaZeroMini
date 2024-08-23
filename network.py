@@ -146,7 +146,7 @@ class Network(nn.Module):
 
         return logits, value
 
-    def greedy_sample(self, state: torch.BoolTensor) -> torch.Tensor:
+    def greedy_sample(self, state: torch.BoolTensor) -> torch.IntTensor:
         """Take state, produce action dist, sample greedily from dist.
         
         :param state: tensor of shape (b,i,s,s)
@@ -163,7 +163,8 @@ class Network(nn.Module):
         shape = logits[0].shape
         actions = torch.stack(torch.unravel_index(actions, shape)).T
 
-        return actions
+        return actions.to(torch.int)
+
 
     
 

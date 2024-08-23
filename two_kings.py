@@ -38,21 +38,22 @@ class EnvTwoKings:
         self.move = 1
         self.move_limit = 10
 
-    def step(self, action: torch.Tensor) -> tuple:
+    def step(self, action: torch.IntTensor) -> tuple:
         """Update env based on action.
         
-        :param action: tensor [[dir, row, col]] (batch size of 1)
+        :param action: int tensor [[dir, row, col]] (batch size of 1)
         :return: tuple (state, result) where:
             state: tensor of shape (1,3,5,5)
             result: "white", "black", "draw" or None (if game not over)
         """
         assert action.shape == torch.Size([1,3])
+        assert action.dtype == torch.int
         
         # move P1
         P1 = self.state[0]
         P2 = self.state[1]
 
-        direction, row, col = action.unsqueeze()
+        direction, row, col = action.squeeze()
         P1[row, col] = 0 # "pick up piece"
 
         if direction == 0: # up
@@ -69,15 +70,20 @@ class EnvTwoKings:
         P1[row, col] = 1 # "put down piece"
 
         # check if P1 won
-        if P1 == P2:
+        if torch.all(P1 == P2):
             P2[row, col] = 0 # "take P2's king"
             return self.state, self.color
         # check if move limit reached
         elif self.color == 'black' and self.move == self.move_limit:
             return self.state, "draw"
-        # otherwise play on: flip board, change color, increase move count
+        # otherwise play on: rotate board, change color, increase move count
         else:
-            self.state[0], self.state[1] = self.state[1], self.state[0].clone()
-            self.color = 'black' if self.color == 'white' else 'white'
-            self.move += 1
-            return self.state, self.color
+            self.state[0], self.state[1] = self.state[1].flip(0,1), self.state[0].flip(0,1)
+            if self.color == 'black':
+                self.move += 1
+                self.color = 'white'
+            else:
+                self.color = 'black'
+            return self.state, None
+
+
