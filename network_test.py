@@ -1,34 +1,7 @@
 import network
+import two_kings
 import torch
 
-def test_action_mask_two_kings():
-    # test 1
-    state = torch.zeros(1,3,5,5, dtype=torch.bool)
-    state[0, 0, 2, 3] = 1 # P1 at (2,3)
-    state[0, 1, 4, 4] = 1 # P2 at (4,4)
-    state[0, 2, ...] = 7 # 7 moves played
-
-    mask_idxs = network.action_mask_two_kings(state)[0].nonzero()
-    expected_idxs = torch.tensor([[0, 2, 3],
-                                  [1, 2, 3],
-                                  [2, 2, 3],
-                                  [3, 2, 3]])
-
-    assert torch.all(mask_idxs == expected_idxs)
-
-    # test 2
-    state = torch.zeros(1,3,5,5, dtype=torch.bool)
-    state[0, 0, 4, 4] = 1 # P1 at (4,4)
-    state[0, 1, 2, 3] = 1 # P2 at (2,3)
-    state[0, 2, ...] = 7 # 7 moves played
-
-    mask_idxs = network.action_mask_two_kings(state)[0].nonzero()
-    expected_idxs = torch.tensor([[0, 4, 4],
-                                  [2, 4, 4]])
-
-    assert torch.all(mask_idxs == expected_idxs)
-
-    
 def test_ResBlock():
     batch_size = 16
     num_filters = 8
@@ -96,10 +69,10 @@ def test_Network():
         'num_policy_filters': 2,
         'num_out_channels': 4,
         'value_hidden_layer_size': 64,
-        'action_mask': network.action_mask_two_kings
+        'action_mask': two_kings.action_mask
     }
 
-    network = network.Network(**params)
+    net = network.Network(**params)
 
     state = torch.zeros(batch_size, params['num_in_channels'], 
                    params['board_size'], params['board_size'])
@@ -108,14 +81,14 @@ def test_Network():
     state[:, 2, ...] = 7 # move 7 for all batches
     
     # forward()
-    logits, value = network(state)
+    logits, value = net(state)
 
     assert logits.shape == torch.Size([batch_size, params['num_out_channels'], params['board_size'], params['board_size']])
 
     assert value.shape == torch.Size([batch_size])
 
     # greedy_sample()
-    s = network.greedy_sample(state)
+    s = net.greedy_sample(state)
 
     assert s.shape == torch.Size([batch_size, 3])
 
