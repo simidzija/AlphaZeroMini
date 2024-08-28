@@ -178,9 +178,6 @@ class Network(nn.Module):
 
 
 
-# Implement GUI which lets me play :)
-
-
 
 # MCTS (think about how to structure this)
 
