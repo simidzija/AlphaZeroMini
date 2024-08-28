@@ -118,7 +118,7 @@ class Network(nn.Module):
             hidden_layer_size=value_hidden_layer_size
         )
 
-    def forward(self, state: torch.BoolTensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass.
         
         :param state: tensor of shape (b,i,s,s) where
@@ -132,6 +132,17 @@ class Network(nn.Module):
             o = output channels
             s = board size
         """
+        # convert state to float
+        state = state.to(dtype=torch.float)
+
+        # ensure state is 4D (ie batched)
+        if state.ndim == 4:
+            pass
+        elif state.ndim == 3:
+            state = state.unsqueeze(0)
+        else:
+            raise ValueError(f'state must be 3D or 4D tensor, but got {state.ndim}D tensor')
+
         y = self.block1(state)
         for block in self.res_blocks:
             y = block(y)
@@ -150,7 +161,7 @@ class Network(nn.Module):
         """Take state, produce action dist, sample greedily from dist.
         
         :param state: tensor of shape (b,i,s,s)
-        :return: tensor of shape (b,3) corresponding to 3 indices (output plane, row, column)
+        :return action: tensor of shape (b,3) corresponding to 3 indices (output plane, row, column)
 
         Where:
             b = batch size
@@ -164,9 +175,6 @@ class Network(nn.Module):
         actions = torch.stack(torch.unravel_index(actions, shape)).T
 
         return actions.to(torch.int)
-
-
-    
 
 
 
