@@ -69,7 +69,7 @@ class ValueHead(nn.Module):
             nn.ReLU(),
             nn.Linear(in_features=hidden_layer_size, out_features=1),
             nn.Tanh(),
-            nn.Flatten(0)
+            # nn.Flatten(0)
         )
 
     def forward(self, x):
@@ -77,7 +77,7 @@ class ValueHead(nn.Module):
 
 class Network(nn.Module):
     """Policy and value network."""
-    def __init__(self, *, 
+    def __init__(self,
                  num_in_channels: int, 
                  board_size: int,
                  num_filters: int, 
@@ -124,7 +124,7 @@ class Network(nn.Module):
         :param state: tensor of shape (b,i,s,s) where
         :return: tuple (logits, value) where
             logits.shape = (b,o,s,s) 
-            value.shape = (b,)
+            value.shape = (b,1)
 
         And where: 
             b = batch size
@@ -175,8 +175,6 @@ class Network(nn.Module):
         actions = torch.stack(torch.unravel_index(actions, shape)).T
 
         return actions.to(torch.int)
-
-
 
 
 # MCTS (think about how to structure this)

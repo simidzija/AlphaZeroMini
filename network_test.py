@@ -54,7 +54,7 @@ def test_ValueHead():
     x = torch.rand(batch_size, num_filters, board_size, board_size)
     y = value(x)
 
-    assert y.shape == torch.Size([batch_size])
+    assert y.shape == torch.Size([batch_size, 1])
 
 
 def test_Network():
@@ -85,7 +85,7 @@ def test_Network():
 
     assert logits.shape == torch.Size([batch_size, params['num_out_channels'], params['board_size'], params['board_size']])
 
-    assert value.shape == torch.Size([batch_size])
+    assert value.shape == torch.Size([batch_size, 1])
 
     # greedy_sample()
     s = net.greedy_sample(state)

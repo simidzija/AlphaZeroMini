@@ -529,4 +529,13 @@ def play():
 if __name__ == '__main__':
     play()
 
+# env = EnvTwoKings()
+# net = network.Network(3,5,8,3,6,2,4,32,action_mask)
+
+# state = torch.stack([env.state, env.state])
+# logits, value = net(state)
+
+# print(state.shape)
+# print(logits.shape)
+# print(value.shape)
 
