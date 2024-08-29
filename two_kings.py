@@ -6,11 +6,10 @@ import time
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Valid actions mask: input state -> mask containing valid actions
-def action_mask(state: torch.BoolTensor) -> torch.BoolTensor:
+def action_mask(state: torch.Tensor) -> torch.BoolTensor:
     """Mask of allowed actions.
 
-    :param state: bx3x5x5 tensor. Each batch b has 3 5x5 planes: P1 pos, P2 pos, move number
+    :param state: bx4x5x5 tensor. Each batch b has 4 5x5 planes: P1 pos, P2 pos, color, move number
     :return mask: bx4x5x5 tensor. Each batch b has 4 5x5 planes: move up, down, left, right
     """
     # TODO: Figure out a more efficient / "torchy" implementation
@@ -53,7 +52,7 @@ def get_move_type(pos_start: tuple, pos_end: tuple) -> str:
     else:
         return None
 
-def allowed_action(state: torch.BoolTensor, pos_start, pos_end) -> bool:
+def allowed_action(state: torch.Tensor, pos_start, pos_end) -> bool:
     """Return True iff it's legal to move P1 piece from pos_start to pos_end."""
     move_type = get_move_type(pos_start, pos_end)
     if move_type is None:
@@ -80,26 +79,51 @@ def get_action(pos_start: tuple, pos_end: tuple) -> torch.IntTensor:
     row, col = pos_start
     return torch.tensor([[move_type, row, col]], dtype=torch.int)
 
+
 class EnvTwoKings:
     """Environment for Two Kings game."""
-    def __init__(self):
-        # Note: no batching
-        self.in_features = 3
+    def __init__(self, color=None):
+        self.in_features = 4
         self.board_size = 5
-        self.state = torch.zeros(self.in_features, self.board_size, 
-                                 self.board_size, dtype=torch.bool)
-        self.state[0, 4, 2] = 1 # white (P1) at c1
-        self.state[1, 0, 2] = 1 # black (P2) at c5
-        self.color = 'white'
-        self.move = 1
         self.move_limit = 10
+        self.state = torch.zeros(self.in_features, self.board_size, 
+                                 self.board_size)
+        
+        # Initialize P1 and P2 planes
+        self.state[0, 4, 2] = 1 # P1 at c1
+        self.state[1, 0, 2] = 1 # P2 at c5
+
+        # Intitialize color plane
+        if color is None or color == 'white':
+            self.state[2] = 0
+        elif color == 'black':
+            self.state[2] = 1
+        else:
+            raise ValueError(f"color must be 'black', 'white' or None but got {color}")
+
+        # Initialize move plane
+        self.state[3] = 1
+
+    @property
+    def color(self):
+        if self.state[2, 0, 0] == 0:
+            return 'white'
+        elif self.state[2, 0, 0] == 1:
+            return 'black'
+        else:
+            raise RuntimeError(f'self.state[2] must have all elements equal to 0 or 1, but got {self.state[2]}')
+
+    @property
+    def move(self):
+        return int(self.state[3, 0, 0].item())
+
 
     def step(self, action: torch.IntTensor) -> tuple:
         """Update env based on action.
         
         :param action: int tensor [[dir, row, col]] (batch size of 1)
         :return: tuple (state, result) where:
-            state: tensor of shape (1,3,5,5)
+            state: tensor of shape (1,4,5,5)
             result: "white", "black", "draw" or None (if game not over)
         """
         assert action.shape == torch.Size([1,3])
@@ -136,17 +160,20 @@ class EnvTwoKings:
         else:
             self.state[0], self.state[1] = self.state[1].flip(0,1), self.state[0].flip(0,1)
             if self.color == 'black':
-                self.move += 1
-                self.color = 'white'
+                self.state[2] = 0 # change color to white
+                self.state[3] += 1 # increase move count
             else:
-                self.color = 'black'
+                self.state[2] = 1 # change color to black
             return self.state, None
 
-    def get_pos_dict(self, perspective: tuple) -> dict:
+    def get_pos_dict(self, perspective: str) -> dict:
         """Dict of positions from given perspective ('white' or 'black')."""
-        assert perspective == 'white' or perspective == 'black'
+
+        assert perspective == 'white' or perspective == 'black', f"perspective must be 'white' or 'black' but got {perspective}."
+
         P1_K = tuple(self.state[0].nonzero().squeeze().tolist())
         P2_K = tuple(self.state[1].nonzero().squeeze().tolist())
+
         pos_dict = {}
 
         def rotate(coords):
@@ -169,15 +196,13 @@ class EnvTwoKings:
             elif self.color == 'black':
                 pos_dict['white'] = P2_K if P2_K else None
                 pos_dict['black'] = P1_K if P1_K else None
-        else:
-            raise(ValueError('perspective must be "white" or "black".'))
         
         return pos_dict
 
 def play():
     # Initialize env and NN
     game_params = {
-        'num_in_channels': 3, 
+        'num_in_channels': 4, 
         'board_size': 5,
         'num_out_channels': 4,
         'action_mask': action_mask
@@ -485,7 +510,7 @@ def play():
                             print(f'Piece moved to pos {piece_pos_end}')
                             piece_selected = False
                             action = get_action(piece_pos_start, piece_pos_end)
-                            state, result = env.step(action)
+                            _, result = env.step(action)
                             coords_dict = get_coords_dict(
                                 env.get_pos_dict(player_color))
                             if result is None:
@@ -500,7 +525,7 @@ def play():
 
             elif not player_move:
                 action = net.greedy_sample(env.state)
-                state, result = env.step(action)
+                _, result = env.step(action)
                 coords_dict = get_coords_dict(env.get_pos_dict(player_color))
                 if result is None:
                     player_move = True
@@ -528,14 +553,4 @@ def play():
 
 if __name__ == '__main__':
     play()
-
-# env = EnvTwoKings()
-# net = network.Network(3,5,8,3,6,2,4,32,action_mask)
-
-# state = torch.stack([env.state, env.state])
-# logits, value = net(state)
-
-# print(state.shape)
-# print(logits.shape)
-# print(value.shape)
 

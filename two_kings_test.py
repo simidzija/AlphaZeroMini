@@ -3,10 +3,11 @@ import torch
 
 def test_action_mask():
     # test 1
-    state = torch.zeros(1,3,5,5, dtype=torch.bool)
+    state = torch.zeros(1,4,5,5, dtype=torch.bool)
     state[0, 0, 2, 3] = 1 # P1 at (2,3)
     state[0, 1, 4, 4] = 1 # P2 at (4,4)
-    state[0, 2, ...] = 7 # 7 moves played
+    state[0, 2, ...] = 0 # white to play
+    state[0, 3, ...] = 7 # 7 moves played
 
     mask_idxs = two_kings.action_mask(state)[0].nonzero()
     expected_idxs = torch.tensor([[0, 2, 3],
@@ -17,10 +18,11 @@ def test_action_mask():
     assert torch.all(mask_idxs == expected_idxs)
 
     # test 2
-    state = torch.zeros(1,3,5,5, dtype=torch.bool)
+    state = torch.zeros(1,4,5,5, dtype=torch.bool)
     state[0, 0, 4, 4] = 1 # P1 at (4,4)
     state[0, 1, 2, 3] = 1 # P2 at (2,3)
-    state[0, 2, ...] = 7 # 7 moves played
+    state[0, 2, ...] = 0 # white to play
+    state[0, 3, ...] = 7 # 7 moves played
 
     mask_idxs = two_kings.action_mask(state)[0].nonzero()
     expected_idxs = torch.tensor([[0, 4, 4],

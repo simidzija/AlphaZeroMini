@@ -68,8 +68,7 @@ class ValueHead(nn.Module):
                       out_features=hidden_layer_size),
             nn.ReLU(),
             nn.Linear(in_features=hidden_layer_size, out_features=1),
-            nn.Tanh(),
-            # nn.Flatten(0)
+            nn.Tanh()
         )
 
     def forward(self, x):
@@ -132,8 +131,6 @@ class Network(nn.Module):
             o = output channels
             s = board size
         """
-        # convert state to float
-        state = state.to(dtype=torch.float)
 
         # ensure state is 4D (ie batched)
         if state.ndim == 4:
