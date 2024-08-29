@@ -19,22 +19,29 @@ class Node:
     def __hash__(self):
         return hash(self.state.cpu().numpy().tobytes())
 
-n1 = Node(torch.tensor([1,2], dtype=torch.bool))
-n2 = Node(torch.tensor([1,2], dtype=torch.bool))
-
-d = {}
-d[n1] = 3
-print(d[n2])
-
-
-
 
 class Tree:
-    def __init__(self, state: torch.BoolTensor):
-        self.root = Node(state)
+    def __init__(self, env: EnvProtocol, net: Network):
+        self.env = env
+        self.net = net
+        self.root = Node(env.state)
 
     def simulation(self):
-        pass
+        env = copy.deepcopy(self.env)
+
+        current = self.root
+        path = [current]
+
+        # go from root to leaf
+        while current.children:
+            pass
+        
+        # expand leaf
+        
+
+
+        # backup
+
 
     def get_action(self, temp):
         pass
@@ -53,7 +60,6 @@ def mcts(env: EnvProtocol, net: Network, n_simulations: int, temp: float) -> tor
     tree = Tree()
 
     for _ in range(n_simulations):
-        sim_env = copy.deepcopy(env)
         tree.simulation()
 
     return tree.get_action(temp)
