@@ -95,7 +95,7 @@ class EnvTwoKings:
 
         # Intitialize color plane
         if color is None or color == 'white':
-            self.state[2] = 0
+            self.state[2] = -1
         elif color == 'black':
             self.state[2] = 1
         else:
@@ -106,7 +106,7 @@ class EnvTwoKings:
 
     @property
     def color(self):
-        if self.state[2, 0, 0] == 0:
+        if self.state[2, 0, 0] == -1:
             return 'white'
         elif self.state[2, 0, 0] == 1:
             return 'black'
@@ -160,7 +160,7 @@ class EnvTwoKings:
         else:
             self.state[0], self.state[1] = self.state[1].flip(0,1), self.state[0].flip(0,1)
             if self.color == 'black':
-                self.state[2] = 0 # change color to white
+                self.state[2] = -1 # change color to white
                 self.state[3] += 1 # increase move count
             else:
                 self.state[2] = 1 # change color to black

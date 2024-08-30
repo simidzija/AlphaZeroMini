@@ -6,7 +6,7 @@ A black king and a white king are initialized on opposite ends of a 5 by 5 board
 4 planes of size $5\times 5$. The planes correspond to:
 1) P1 position: one-hot 
 2) P2 position: one-hot
-3) Color: constant (0 for white, 1 for black)
+3) Color: constant (-1 for white, 1 for black)
 3) Move count: constant
 
 ### Action features 

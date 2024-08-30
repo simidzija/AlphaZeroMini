@@ -16,7 +16,7 @@ def self_play_game(env: EnvProtocol, net: Network) -> list[tuple]:
     :return buffer: list of (state, action, value) tuples where:
         state: 4D tensor corresponding to state of the game
         action: 4D tensor corresponding to action taken in the game
-        value: 2D tensor: [[+1]], [[-1]], or [[0]] for white W, black W, draw
+        value: 2D tensor: [[-1]], [[+1]], or [[0]] for white W, black W, draw
     """
 
     result = None
@@ -31,11 +31,11 @@ def self_play_game(env: EnvProtocol, net: Network) -> list[tuple]:
 
     # add ground truth value (ie outcome of game) to items in buffer
     if result == 'white':
-        value = torch.tensor([[1]], dtype=torch.float)
+        value = torch.tensor([[-1]], dtype=torch.float)
     elif result == 'draw':
         value = torch.tensor([[0]], dtype=torch.float)
     elif result == 'black':
-        value = torch.tensor([[-1]], dtype=torch.float)
+        value = torch.tensor([[+1]], dtype=torch.float)
     else:
         raise RuntimeError(f"result should be 'white', 'black', or 'draw' but got {result}")
 
