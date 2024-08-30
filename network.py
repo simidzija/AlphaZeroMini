@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from torch.distributions import Categorical
 
-# Policy and value network:
 class ResBlock(nn.Module):
     """Two convolution layers with a residual skip connection."""
     def __init__(self, num_filters: int, kernel_size: int):
@@ -117,14 +116,14 @@ class Network(nn.Module):
             hidden_layer_size=value_hidden_layer_size
         )
 
-    def forward(self, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, state: torch.Tensor):
         """Forward pass.
         
-        :param state: tensor of shape (b,i,s,s) where
-        :return: tuple (logits, value) where
-            logits.shape = (b,o,s,s) 
-            value.shape = (b,1)
-
+        :param state: tensor of shape (b,i,s,s)
+        :return: tuple (logits, value). 
+            - value is a tensor of shape (b,1)
+            - logits tensor of shape (b,o,s,s)
+        
         And where: 
             b = batch size
             i = input channels
@@ -172,6 +171,23 @@ class Network(nn.Module):
         actions = torch.stack(torch.unravel_index(actions, shape)).T
 
         return actions.to(torch.int)
+        
+def action_dist(logits: torch.Tensor):
+    """Represent policy logits as probability distribution over actions.
+    
+    :param logits: tensor of shape (1,o,s,s) (batch size of 1)
+    :return actions, probs: 
+        actions: tensor of shape (n,1,3)
+        probs: list of ints of length n
+        
+    Where n is the number of non-zero entries in policy
+    """
+    probs_tensor = logits.flatten().softmax(dim=0).reshape(logits.shape)
+    actions = probs_tensor.nonzero().unsqueeze(1) 
+    probs = probs_tensor.flatten()[probs_tensor.flatten() != 0]
+
+    return actions, probs.tolist()
+
 
 
 # MCTS (think about how to structure this)

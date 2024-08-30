@@ -82,27 +82,20 @@ def get_action(pos_start: tuple, pos_end: tuple) -> torch.IntTensor:
 
 class EnvTwoKings:
     """Environment for Two Kings game."""
-    def __init__(self, color=None):
+    def __init__(self, state=None):
         self.in_features = 4
         self.board_size = 5
         self.move_limit = 10
-        self.state = torch.zeros(self.in_features, self.board_size, 
-                                 self.board_size)
-        
-        # Initialize P1 and P2 planes
-        self.state[0, 4, 2] = 1 # P1 at c1
-        self.state[1, 0, 2] = 1 # P2 at c5
 
-        # Intitialize color plane
-        if color is None or color == 'white':
-            self.state[2] = -1
-        elif color == 'black':
-            self.state[2] = 1
+        if state:
+            self.state = state
         else:
-            raise ValueError(f"color must be 'black', 'white' or None but got {color}")
-
-        # Initialize move plane
-        self.state[3] = 1
+            self.state = torch.zeros(self.in_features, self.board_size, 
+                                     self.board_size)
+            self.state[0, 4, 2] = 1 # P1 at c1
+            self.state[1, 0, 2] = 1 # P2 at c5
+            self.state[2] = -1 # white to move
+            self.state[3] = 1 # move 1
 
     @property
     def color(self):
@@ -117,8 +110,10 @@ class EnvTwoKings:
     def move(self):
         return int(self.state[3, 0, 0].item())
 
+    def new_env(self, state=None):
+        return type(self)(state=state)
 
-    def step(self, action: torch.IntTensor) -> tuple:
+    def step(self, action: torch.IntTensor, update_state=True) -> tuple:
         """Update env based on action.
         
         :param action: int tensor [[dir, row, col]] (batch size of 1)
@@ -128,10 +123,15 @@ class EnvTwoKings:
         """
         assert action.shape == torch.Size([1,3])
         assert action.dtype == torch.int
-        
+
+        if update_state:
+            new_state = self.state
+        else:
+            new_state = self.state.clone()
+
         # move P1
-        P1 = self.state[0]
-        P2 = self.state[1]
+        P1 = new_state[0]
+        P2 = new_state[1]
 
         direction, row, col = action.squeeze()
         P1[row, col] = 0 # "pick up piece"
@@ -152,19 +152,21 @@ class EnvTwoKings:
         # check if P1 won
         if torch.all(P1 == P2):
             P2[row, col] = 0 # "take P2's king"
-            return self.state, self.color
+            result = self.color
         # check if move limit reached
         elif self.color == 'black' and self.move == self.move_limit:
-            return self.state, "draw"
+            result = 'draw'
         # otherwise play on: rotate board, change color, increase move count
         else:
-            self.state[0], self.state[1] = self.state[1].flip(0,1), self.state[0].flip(0,1)
+            new_state[0], new_state[1] = new_state[1].flip(0,1), new_state[0].flip(0,1)
             if self.color == 'black':
-                self.state[2] = -1 # change color to white
-                self.state[3] += 1 # increase move count
+                new_state[2] = -1 # change color to white
+                new_state[3] += 1 # increase move count
             else:
-                self.state[2] = 1 # change color to black
-            return self.state, None
+                new_state[2] = 1 # change color to black
+            result = None
+
+        return new_state, result
 
     def get_pos_dict(self, perspective: str) -> dict:
         """Dict of positions from given perspective ('white' or 'black')."""
@@ -198,6 +200,7 @@ class EnvTwoKings:
                 pos_dict['black'] = P1_K if P1_K else None
         
         return pos_dict
+
 
 def play():
     # Initialize env and NN
@@ -553,4 +556,3 @@ def play():
 
 if __name__ == '__main__':
     play()
-
