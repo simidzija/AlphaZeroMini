@@ -8,11 +8,17 @@ from collections import deque
 from tqdm import tqdm
 
 
-def self_play_game(env: EnvProtocol, net: Network) -> list[tuple]:
+def self_play_game(env: EnvProtocol, 
+                   net: Network, 
+                   n_simulations: int,
+                   c_putc: float,
+                   temp: float) -> list[tuple]:
     """Network net plays game in environment env against itself.
     
     :param env: environment
     :param net: network
+    :param n_simulations: number of simulations per MCTS
+
     :return buffer: list of (state, action, value) tuples where:
         state: 4D tensor corresponding to state of the game
         action: 4D tensor corresponding to action taken in the game
@@ -20,12 +26,13 @@ def self_play_game(env: EnvProtocol, net: Network) -> list[tuple]:
     """
 
     result = None
-    state = env.state
+    state = env.state.clone()
     buffer = []
 
     # game loop
     while not result:
-        action = mcts(env, net, n_simulations)
+        action = mcts(env, net, n_simulations=n_simulations, 
+                      c_putc=c_putc, temp=temp)
         buffer.append((state, action))
         state, result = env.step(action)
 
@@ -46,59 +53,59 @@ def self_play_game(env: EnvProtocol, net: Network) -> list[tuple]:
 
 
 
-def train(
-        net: network.Network
-):
-    assert buffer_size > batch_size
+# def train(
+#         net: network.Network
+# ):
+#     assert buffer_size > batch_size
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, 
-                                 weight_decay=c_weight_decay)
-    loss_fn_pol = torch.nn.CrossEntropyLoss() 
-    loss_fn_val = torch.nn.MSELoss()
+#     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, 
+#                                  weight_decay=c_weight_decay)
+#     loss_fn_pol = torch.nn.CrossEntropyLoss() 
+#     loss_fn_val = torch.nn.MSELoss()
 
-    buffer = deque([], maxlen=buffer_size)  # items (state, action, value)
+#     buffer = deque([], maxlen=buffer_size)  # items (state, action, value)
 
-    # logging
-    losses = []
-    losses_pol = []
-    losses_val = []
+#     # logging
+#     losses = []
+#     losses_pol = []
+#     losses_val = []
 
-    for batch in tqdm(range(n_batches)):
+#     for batch in tqdm(range(n_batches)):
 
-        # Collect data via self-play
-        for _ in range(n_games_per_batch):
-            buffer.extend(self_play_game())
+#         # Collect data via self-play
+#         for _ in range(n_games_per_batch):
+#             buffer.extend(self_play_game())
 
-        # Use data to train model
-        buffer_sample = random.sample(buffer, batch_size)
+#         # Use data to train model
+#         buffer_sample = random.sample(buffer, batch_size)
 
-        state = torch.cat([item[0] for item in buffer_sample])
-        action = torch.cat([item[1] for item in buffer_sample])
-        value = torch.cat([item[2] for item in buffer_sample])
+#         state = torch.cat([item[0] for item in buffer_sample])
+#         action = torch.cat([item[1] for item in buffer_sample])
+#         value = torch.cat([item[2] for item in buffer_sample])
 
-        logits, value_pred = net(state)
+#         logits, value_pred = net(state)
 
-        loss_pol = loss_fn_pol(logits, action)
-        loss_val = loss_fn_val(value_pred, value)
-        loss = loss_pol + loss_val
+#         loss_pol = loss_fn_pol(logits, action)
+#         loss_val = loss_fn_val(value_pred, value)
+#         loss = loss_pol + loss_val
 
-        losses_pol.append(loss_pol.item())
-        losses_val.append(loss_val.item())
-        losses.append(loss.item())
+#         losses_pol.append(loss_pol.item())
+#         losses_val.append(loss_val.item())
+#         losses.append(loss.item())
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+#         optimizer.zero_grad()
+#         loss.backward()
+#         optimizer.step()
 
-        # Save checkpoint
-        if (batch + 1) % checkpoint_interval == 0:
-            save_checkpoint(checkpoint_folder, checkpoint_prefix, batch + 1)
+#         # Save checkpoint
+#         if (batch + 1) % checkpoint_interval == 0:
+#             save_checkpoint(checkpoint_folder, checkpoint_prefix, batch + 1)
 
-        # Print progress
-        if batch % (n_batches // 10) == 0:
-            print(f'Batch {batch:3d}: loss_pol = {loss_pol.item():5.2f}, loss_val = {loss_val.item():5.2f}')
+#         # Print progress
+#         if batch % (n_batches // 10) == 0:
+#             print(f'Batch {batch:3d}: loss_pol = {loss_pol.item():5.2f}, loss_val = {loss_val.item():5.2f}')
 
-    return losses, losses_pol, losses_val
+#     return losses, losses_pol, losses_val
 
         
 

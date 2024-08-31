@@ -182,11 +182,12 @@ def action_dist(logits: torch.Tensor):
         
     Where n is the number of non-zero entries in policy
     """
+    logits = logits.squeeze(0) # get rid of batch dim
     probs_tensor = logits.flatten().softmax(dim=0).reshape(logits.shape)
-    actions = probs_tensor.nonzero().unsqueeze(1) 
-    probs = probs_tensor.flatten()[probs_tensor.flatten() != 0]
+    actions = probs_tensor.nonzero().unsqueeze(1).to(torch.int)
+    probs = probs_tensor.flatten()[probs_tensor.flatten() != 0].tolist()
 
-    return actions, probs.tolist()
+    return actions, probs
 
 
 

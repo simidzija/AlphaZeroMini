@@ -87,15 +87,17 @@ class EnvTwoKings:
         self.board_size = 5
         self.move_limit = 10
 
-        if state:
+        if isinstance(state, torch.Tensor):
             self.state = state
-        else:
+        elif state is None:
             self.state = torch.zeros(self.in_features, self.board_size, 
                                      self.board_size)
             self.state[0, 4, 2] = 1 # P1 at c1
             self.state[1, 0, 2] = 1 # P2 at c5
             self.state[2] = -1 # white to move
             self.state[3] = 1 # move 1
+        else:
+            raise ValueError(f'state must be tensor or None, but got type {state}')
 
     @property
     def color(self):
@@ -121,8 +123,8 @@ class EnvTwoKings:
             state: tensor of shape (1,4,5,5)
             result: "white", "black", "draw" or None (if game not over)
         """
-        assert action.shape == torch.Size([1,3])
-        assert action.dtype == torch.int
+        assert action.shape == torch.Size([1,3]), f'action.shape should be [1,3] but got {action.shape}'
+        assert action.dtype == torch.int, f'action.dtype should be torch.int but got {action.dtype}'
 
         if update_state:
             new_state = self.state
@@ -133,7 +135,7 @@ class EnvTwoKings:
         P1 = new_state[0]
         P2 = new_state[1]
 
-        direction, row, col = action.squeeze()
+        direction, row, col = action.squeeze().clone()
         P1[row, col] = 0 # "pick up piece"
 
         if direction == 0: # up
@@ -166,7 +168,7 @@ class EnvTwoKings:
                 new_state[2] = 1 # change color to black
             result = None
 
-        return new_state, result
+        return new_state.clone(), result
 
     def get_pos_dict(self, perspective: str) -> dict:
         """Dict of positions from given perspective ('white' or 'black')."""
