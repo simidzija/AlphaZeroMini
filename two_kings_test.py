@@ -42,6 +42,7 @@ def test_EnvTwoKings():
     direction = 3 # right
     action = torch.Tensor([[direction, row, col]]).to(torch.int)
     state, result = env.step(action)
+    state = state.squeeze()
 
     # white should now be on d1; this is [0,1] (board is now from black's POV)
     assert torch.all(state[1].nonzero() == torch.tensor([[0, 1]])), 'incorrect white pos'
@@ -65,6 +66,7 @@ def test_EnvTwoKings():
     direction = 0 # up (from POV of black)
     action = torch.Tensor([[direction, row, col]]).to(torch.int)
     state, result = env.step(action)
+    state = state.squeeze()
 
     # white should still be on d1; this is [4,3] (board is now from white's POV)
     assert torch.all(state[0].nonzero() == torch.tensor([[4, 3]])), 'incorrect white pos'
@@ -88,6 +90,7 @@ def test_EnvTwoKings():
     direction = 0 # up
     action = torch.Tensor([[direction, row, col]]).to(torch.int)
     state, result = env.step(action)
+    state = state.squeeze()
 
     # white should now be on d2; this is [1,1] (board is now from black's POV)
     assert torch.all(state[1].nonzero() == torch.tensor([[1, 1]])), 'incorrect white pos'
@@ -111,6 +114,7 @@ def test_EnvTwoKings():
     direction = 0 # up (from POV of black)
     action = torch.Tensor([[direction, row, col]]).to(torch.int)
     state, result = env.step(action)
+    state = state.squeeze()
 
     # white should still be on d2; this is [3,3] (board is now from white's POV)
     assert torch.all(state[0].nonzero() == torch.tensor([[3, 3]])), 'incorrect white pos'
@@ -134,6 +138,7 @@ def test_EnvTwoKings():
     direction = 2 # left
     action = torch.Tensor([[direction, row, col]]).to(torch.int)
     state, result = env.step(action)
+    state = state.squeeze()
 
     # white should now be on c2; this is [1,2] (board is now from black's POV)
     assert torch.all(state[1].nonzero() == torch.tensor([[1, 2]])), 'incorrect white pos'
@@ -157,6 +162,7 @@ def test_EnvTwoKings():
     direction = 0 # up (from POV of black)
     action = torch.Tensor([[direction, row, col]]).to(torch.int)
     state, result = env.step(action)
+    state = state.squeeze()
 
     # because game is over, board doesn't get flipped: still in black's POV
 

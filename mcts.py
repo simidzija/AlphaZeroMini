@@ -1,4 +1,5 @@
-from network import Network, action_dist
+from network import Network
+from utils import action_dist
 from protocols import EnvProtocol
 
 import torch

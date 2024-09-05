@@ -1,5 +1,5 @@
 import torch
-import network
+from network import Network
 import pygame
 import os
 import time
@@ -59,7 +59,7 @@ def allowed_action(state: torch.Tensor, pos_start, pos_end) -> bool:
         return False
 
     r_start, c_start = pos_start
-    if not state[0, r_start, c_start]:
+    if not state[0, 0, r_start, c_start]:
         return False
     else:
         return True
@@ -90,32 +90,69 @@ class EnvTwoKings:
         if isinstance(state, torch.Tensor):
             self.state = state
         elif state is None:
-            self.state = torch.zeros(self.in_features, self.board_size, 
+            self.state = torch.zeros(1, self.in_features, self.board_size, 
                                      self.board_size)
-            self.state[0, 4, 2] = 1 # P1 at c1
-            self.state[1, 0, 2] = 1 # P2 at c5
-            self.state[2] = -1 # white to move
-            self.state[3] = 1 # move 1
+            self.state[0, 0, 4, 2] = 1 # P1 at c1
+            self.state[0, 1, 0, 2] = 1 # P2 at c5
+            self.state[0, 2] = -1 # white to move
+            self.state[0, 3] = 1 # move 1
         else:
             raise ValueError(f'state must be tensor or None, but got type {state}')
 
     @property
     def color(self):
-        if self.state[2, 0, 0] == -1:
+        if self.state[0, 2, 0, 0] == -1:
             return 'white'
-        elif self.state[2, 0, 0] == 1:
+        elif self.state[0, 2, 0, 0] == 1:
             return 'black'
         else:
-            raise RuntimeError(f'self.state[2] must have all elements equal to 0 or 1, but got {self.state[2]}')
+            raise RuntimeError(f'self.state[0, 2] must have all elements equal to 0 or 1, but got {self.state[0, 2]}')
 
     @property
     def move(self):
-        return int(self.state[3, 0, 0].item())
+        return int(self.state[0, 3, 0, 0].item())
 
     def new_env(self, state=None):
         return type(self)(state=state)
 
-    def step(self, action: torch.IntTensor, update_state=True) -> tuple:
+    def clone(self):
+        state = self.state.clone()
+        return self.new_env(state=state)
+    
+    def get_square(self, action: torch.Tensor) -> str:
+        """Return destination square associated with taking given action in self's state.
+        
+        :param action: index tensor [[dir, row, col]]
+        :return square: square in chess notation
+        """
+        if self.color == 'white':
+            ROWS = list('54321')
+            COLS = list('abcde')
+        elif self.color == 'black':
+            ROWS = list('12345')
+            COLS = list('edcba')
+        else:
+            raise RuntimeError(f'color must be "black" or "white" but got {self.color}')
+
+        idx_d, idx_r, idx_c = action.squeeze().tolist()
+
+        if idx_d == 0: # up
+            row, col = ROWS[idx_r - 1], COLS[idx_c]
+        elif idx_d == 1: # down
+            row, col = ROWS[idx_r + 1], COLS[idx_c]
+        elif idx_d == 2: # left
+            row, col = ROWS[idx_r], COLS[idx_c - 1]
+        elif idx_d == 3: # right
+            row, col = ROWS[idx_r], COLS[idx_c + 1]
+        else:
+            raise RuntimeError(f'idx_d must be 0, 1, 2, or 3 but got {idx_d}')
+        
+        square = f'{col}{row}'
+
+        return square
+
+
+    def step(self, action: torch.IntTensor, update_state=True, print_move=False) -> tuple:
         """Update env based on action.
         
         :param action: int tensor [[dir, row, col]] (batch size of 1)
@@ -126,14 +163,18 @@ class EnvTwoKings:
         assert action.shape == torch.Size([1,3]), f'action.shape should be [1,3] but got {action.shape}'
         assert action.dtype == torch.int, f'action.dtype should be torch.int but got {action.dtype}'
 
+        if print_move:
+            square = self.get_square(action)
+            print(f'    {self.move}. {self.color} to {square}')
+
         if update_state:
             new_state = self.state
         else:
             new_state = self.state.clone()
 
         # move P1
-        P1 = new_state[0]
-        P2 = new_state[1]
+        P1 = new_state[0, 0]
+        P2 = new_state[0, 1]
 
         direction, row, col = action.squeeze().clone()
         P1[row, col] = 0 # "pick up piece"
@@ -160,12 +201,12 @@ class EnvTwoKings:
             result = 'draw'
         # otherwise play on: rotate board, change color, increase move count
         else:
-            new_state[0], new_state[1] = new_state[1].flip(0,1), new_state[0].flip(0,1)
+            new_state[0, 0], new_state[0, 1] = new_state[0, 1].flip(0,1), new_state[0, 0].flip(0,1)
             if self.color == 'black':
-                new_state[2] = -1 # change color to white
-                new_state[3] += 1 # increase move count
+                new_state[0, 2] = -1 # change color to white
+                new_state[0, 3] += 1 # increase move count
             else:
-                new_state[2] = 1 # change color to black
+                new_state[0, 2] = 1 # change color to black
             result = None
 
         return new_state.clone(), result
@@ -175,8 +216,8 @@ class EnvTwoKings:
 
         assert perspective == 'white' or perspective == 'black', f"perspective must be 'white' or 'black' but got {perspective}."
 
-        P1_K = tuple(self.state[0].nonzero().squeeze().tolist())
-        P2_K = tuple(self.state[1].nonzero().squeeze().tolist())
+        P1_K = tuple(self.state[0, 0].nonzero().squeeze().tolist())
+        P2_K = tuple(self.state[0, 1].nonzero().squeeze().tolist())
 
         pos_dict = {}
 
@@ -204,24 +245,8 @@ class EnvTwoKings:
         return pos_dict
 
 
-def play():
-    # Initialize env and NN
-    game_params = {
-        'num_in_channels': 4, 
-        'board_size': 5,
-        'num_out_channels': 4,
-        'action_mask': action_mask
-    }
-    architecture_params = {
-        'num_filters': 8,
-        'kernel_size': 3,
-        'num_res_blocks': 6,
-        'num_policy_filters': 2,
-        'value_hidden_layer_size': 64,
-    }
-    net = network.Network(**game_params, **architecture_params)
-
-    # Initialize pygame
+def play(net: Network, print_move=True):
+  
     pygame.init()
 
     # Board and square sizes
@@ -442,7 +467,7 @@ def play():
             return None
         
         r, c = pos
-        if env.state[0, r, c]:
+        if env.state[0, 0, r, c]:
             return r, c
         
         return None
@@ -512,10 +537,10 @@ def play():
                         if piece_pos_end is None:
                             print('Invalid move')
                         else:
-                            print(f'Piece moved to pos {piece_pos_end}')
+                            # print(f'Piece moved to pos {piece_pos_end}')
                             piece_selected = False
                             action = get_action(piece_pos_start, piece_pos_end)
-                            _, result = env.step(action)
+                            _, result = env.step(action, print_move=print_move)
                             coords_dict = get_coords_dict(
                                 env.get_pos_dict(player_color))
                             if result is None:
@@ -526,11 +551,11 @@ def play():
                             print('Invalid piece selection')
                         else:
                             piece_selected = True
-                            print(f'Piece selected at pos {piece_pos_start}')
+                            # print(f'Piece selected at pos {piece_pos_start}')
 
             elif not player_move:
                 action = net.greedy_sample(env.state)
-                _, result = env.step(action)
+                _, result = env.step(action, print_move=True)
                 coords_dict = get_coords_dict(env.get_pos_dict(player_color))
                 if result is None:
                     player_move = True
@@ -557,4 +582,26 @@ def play():
 
 
 if __name__ == '__main__':
-    play()
+    ##############   New NN   ##############
+
+    # game_params = {
+    #     'num_in_channels': 4, 
+    #     'board_size': 5,
+    #     'num_out_channels': 4,
+    #     'action_mask': action_mask
+    # }
+    # architecture_params = {
+    #     'num_filters': 8,
+    #     'kernel_size': 3,
+    #     'num_res_blocks': 6,
+    #     'num_policy_filters': 2,
+    #     'value_hidden_layer_size': 64,
+    # }
+    # net = Network(**game_params, **architecture_params)
+
+    ##############   Trained NN   ##############
+
+    filename = os.path.join('checkpoints', 'batch_50.pth')
+    net = torch.load(filename)
+
+    play(net)

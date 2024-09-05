@@ -25,3 +25,5 @@ Given input features, we can determine the legal moves in the following way:
 4) The location also determines which of four action planes are allowed
 In total only 2,3, or 4 out of the 100 possible actions are legal; the rest are illegal.
 
+### TODO
+- Modify MCTS so that when the agent plays a move the corresponding branch of the tree is kept, rather than starting an entirely new tree (see methods of AlphaGo paper)
