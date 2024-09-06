@@ -165,7 +165,10 @@ class EnvTwoKings:
 
         if print_move:
             square = self.get_square(action)
-            print(f'    {self.move}. {self.color} to {square}')
+            if self.color == 'white':
+                print(f'{self.move}.K{square}', end=' ')
+            else:
+                print(f'K{square}', end=' ')
 
         if update_state:
             new_state = self.state
@@ -196,9 +199,13 @@ class EnvTwoKings:
         if torch.all(P1 == P2):
             P2[row, col] = 0 # "take P2's king"
             result = self.color
+            if print_move:
+                print(f'# {result} wins')
         # check if move limit reached
         elif self.color == 'black' and self.move == self.move_limit:
             result = 'draw'
+            if print_move:
+                print('# draw')
         # otherwise play on: rotate board, change color, increase move count
         else:
             new_state[0, 0], new_state[0, 1] = new_state[0, 1].flip(0,1), new_state[0, 0].flip(0,1)
@@ -535,7 +542,8 @@ def play(net: Network, print_move=True):
                 elif left_button_up(event):
                     if piece_selected:
                         if piece_pos_end is None:
-                            print('Invalid move')
+                            # print('Invalid move')
+                            pass
                         else:
                             # print(f'Piece moved to pos {piece_pos_end}')
                             piece_selected = False
@@ -548,7 +556,8 @@ def play(net: Network, print_move=True):
                             pygame.event.post(fake_event)
                     elif not piece_selected:
                         if piece_pos_start is None:
-                            print('Invalid piece selection')
+                            # print('Invalid piece selection')
+                            pass
                         else:
                             piece_selected = True
                             # print(f'Piece selected at pos {piece_pos_start}')

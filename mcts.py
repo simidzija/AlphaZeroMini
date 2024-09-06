@@ -83,10 +83,8 @@ class Tree:
                     'W': 0, # total action value
                     'Q': 0 # mean action value
                 }
-        elif current.result == 'white':
-            value = -1
-        elif current.result == 'black':
-            value = +1
+        elif current.result == 'white' or current.result == 'black':
+            value = +1 if self.env.color == current.result else -1
         elif current.result == 'draw':
             value = 0
         else:
