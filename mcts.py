@@ -88,7 +88,7 @@ class Tree:
         elif current.result == 'draw':
             value = 0
         else:
-            raise RuntimeError(f'Got invalid result: {result}')
+            raise RuntimeError(f'Got invalid result: {current.result}')
 
         # backup
         if len(path) > 1:

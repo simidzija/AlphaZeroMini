@@ -34,6 +34,9 @@ def self_play_game(env: EnvProtocol,
     state = env.state.clone()
     buffer = []
 
+    if print_move:
+        print('  ', end='')
+
     # game loop
     while not result:
         action = mcts(env, net, n_simulations=n_simulations, 
@@ -85,10 +88,13 @@ def train(env: EnvProtocol,
 
     for batch in range(n_batches):
 
+        print_freq = 1
+        if batch % print_freq == 0:
+            print(f'Batch {batch}:')
+
         # Collect data via self-play
         for _ in range(n_games_per_batch):
             env_clone = env.clone()
-            print(f'  New game:')
             buffer.extend(self_play_game(env_clone, net, 
                                          n_simulations=n_simulations, 
                                          c_putc=c_putc, temp=temp,
@@ -127,11 +133,9 @@ def train(env: EnvProtocol,
             torch.save(net, filename)
 
         # Print progress
-        print_freq = 1
         if batch % print_freq == 0:
-            print(f'Batch {batch:3d}: loss_pol = {loss_pol.item():5.2f}, loss_val = {loss_val.item():5.2f}')
-            print(f'  value: {value}')
-            print(f'  value_pred: {value_pred}')
+            print(f'  loss_pol = {loss_pol.item():5.2f}')
+            print(f'  loss_val = {loss_val.item():5.2f}')
 
     return losses, losses_pol, losses_val
 
@@ -153,16 +157,16 @@ if __name__ == '__main__':
     losses, losses_pol, losses_val = train(
         env=EnvTwoKings(),
         net=net,
-        n_batches=30,
-        n_games_per_batch=3,
-        buffer_size=10,
-        batch_size=3,
-        n_simulations=5,
+        n_batches=5,
+        n_games_per_batch=5,
+        buffer_size=20, # should be < games * (least possible states/game)
+        batch_size=10, # should be < buffer_size
+        n_simulations=100,
         learning_rate=0.01,
-        c_weight_decay=0.1,
-        c_putc=0.1,
+        c_weight_decay=0.0,
+        c_putc=0.1, # higher value means more exploration
         temp=1,
-        checkpoint_interval=10
+        checkpoint_interval=1 # should be an O(1) fraction of n_batches
     )
 
     plt.plot(losses, label='loss')

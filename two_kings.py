@@ -563,6 +563,7 @@ def play(net: Network, print_move=True):
                             # print(f'Piece selected at pos {piece_pos_start}')
 
             elif not player_move:
+                # TODO: Modify this so that MCTS is used rather than greedy sampling
                 action = net.greedy_sample(env.state)
                 _, result = env.step(action, print_move=True)
                 coords_dict = get_coords_dict(env.get_pos_dict(player_color))
