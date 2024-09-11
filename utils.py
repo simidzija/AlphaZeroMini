@@ -19,32 +19,6 @@ def action_dist(logits: torch.Tensor):
 
 
 
-from two_kings import EnvTwoKings, action_mask
-from network import Network
-
-
-# net = Network(
-#     num_in_channels=4,
-#     board_size=5,
-#     num_filters=8,
-#     kernel_size=3,
-#     num_res_blocks=6,
-#     num_policy_filters=2,
-#     num_out_channels=4,
-#     value_hidden_layer_size=32,
-#     action_mask=action_mask
-# )
-
-
-net = torch.load('checkpoints/batch_100.pth')
-
-env = EnvTwoKings()
-
-logits, value = net(env.state)
-actions, probs = action_dist(logits)
-
-print(actions)
-print(probs)
 
 
 

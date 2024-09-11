@@ -25,7 +25,7 @@ class Node:
 
     def __hash__(self):
         return hash(self.state.cpu().numpy().tobytes())
-
+    
 class Tree:
     def __init__(self, env: EnvProtocol, net: Network, c_puct: float, temp: float, new_root: Optional[Node]=None):
         self.env = env
@@ -37,6 +37,28 @@ class Tree:
         elif isinstance(new_root, Node):
             assert bool(torch.all(new_root.state == env.state)), f'state of new_root must match state of env'
             self.root = new_root
+    
+    def __str__(self):
+        def edge_and_node(edge: dict, node: Node, indent: int) -> str:
+            result = " " * indent
+            result += "--- ("
+            result += f"{edge['N']:2d}, "
+            result += f"{edge['P']:.2f}, "
+            result += f"{edge['W']:.2f}, "
+            result += f"{edge['Q']:.2f}"
+            result += ") --- Node\n"
+            return result
+            
+        result = "Note: edges are labelled (N,P,W,Q).\n\n"
+        result += f'Root Node\n'
+        stack = [(edge, node, 4) for node, edge in self.root.children.items()]
+        while stack:
+            edge, node, indent = stack.pop()
+            result += edge_and_node(edge, node, indent)
+            for child, edge in node.children.items():
+                stack.append((edge, child, indent + 4))
+        
+        return result
 
     def simulation(self):
         current = self.root

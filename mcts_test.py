@@ -52,4 +52,7 @@ def test_mcts():
     assert isinstance(new_root, Node)
 
 
+tree = Tree(EnvTwoKings(), net, c_puct=0.1, temp=1)
+mcts(tree, n_simulations=10)
 
+print(tree)
