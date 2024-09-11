@@ -1,4 +1,4 @@
-import mcts
+from mcts import Node, Tree, mcts
 from network import Network
 from two_kings import EnvTwoKings, action_mask
 
@@ -18,7 +18,7 @@ net = Network(
 
 def test_Tree():
     env = EnvTwoKings()
-    tree = mcts.Tree(env, net, c_puct=0.1, temp=1)
+    tree = Tree(env, net, c_puct=0.1, temp=1, new_root=None)
 
     tree.simulation()
     assert len(tree.root.children) == 3
@@ -36,17 +36,20 @@ def test_Tree():
     assert tree.root.children[child]['W'] == value
     assert tree.root.children[child]['Q'] == value
 
-    action = tree.get_action()
+    action, new_root = tree.get_action()
     assert action.shape == torch.Size([1,3])
+    assert isinstance(new_root, Node)
     
 def test_mcts():
     env = EnvTwoKings()
-    action = mcts.mcts(env, net, n_simulations=10, c_putc=0.1, temp=1)
+    tree = Tree(env, net, c_puct=0.1, temp=1, new_root=None)
+    action, new_root = mcts(tree, n_simulations=10)
 
     assert action.shape == torch.Size([1,3])
     assert 0 <= action[0,0] < 4
     assert action[0,1] == 4, f'row index of king in starting position should be 4 but got {action[0,1]}'
     assert action[0,2] == 2, f'col index of king in starting position should be 2 but got {action[0,2]}'
+    assert isinstance(new_root, Node)
 
 
 

@@ -27,3 +27,5 @@ In total only 2,3, or 4 out of the 100 possible actions are legal; the rest are 
 
 ### TODO
 - Modify MCTS so that when the agent plays a move the corresponding branch of the tree is kept, rather than starting an entirely new tree (see methods of AlphaGo paper)
+- Add Dirichlet noise to prior MCTS probabilities
+- Replace greedy sampling with MCTS during inference

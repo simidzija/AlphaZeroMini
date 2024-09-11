@@ -4,7 +4,7 @@ from protocols import EnvProtocol
 
 import torch
 import math
-from typing import Any
+from typing import Optional
 import random
 
 class Node:
@@ -27,12 +27,16 @@ class Node:
         return hash(self.state.cpu().numpy().tobytes())
 
 class Tree:
-    def __init__(self, env: EnvProtocol, net: Network, c_puct: float, temp: float):
+    def __init__(self, env: EnvProtocol, net: Network, c_puct: float, temp: float, new_root: Optional[Node]=None):
         self.env = env
         self.net = net
         self.c_puct = c_puct
         self.temp = temp
-        self.root = Node(env.state)
+        if new_root is None:
+            self.root = Node(env.state)
+        elif isinstance(new_root, Node):
+            assert bool(torch.all(new_root.state == env.state)), f'state of new_root must match state of env'
+            self.root = new_root
 
     def simulation(self):
         current = self.root
@@ -76,6 +80,7 @@ class Tree:
             for action, prob in zip(actions, probs):
                 state, result = env.step(action, update_state=False)
                 leaf = Node(state=state, result=result)
+                # define edge from current to leaf
                 current.children[leaf] = {
                     'action': action, # action
                     'P': prob, # prior prob
@@ -102,39 +107,38 @@ class Tree:
     def get_action(self):
         """Sample action based on weights given by N^(1/T) where T is temp.
         
-        :return action: tensor of shape (1,3)
+        :return: tuple (action, new_root) where:
+            action: tensor [[dir, row, col]] corresponding to action taken
+            new_root: Node object resulting from action
         """
         if not self.root.children:
             raise RuntimeError('Cannot call get_action() on Tree with childless root node.')
-        actions = []
+
+        children = []
         weights = []
-        for edge in self.root.children.values():
-            actions.append(edge['action'])
+        for child, edge in self.root.children.items():
+            children.append(child)
             weights.append(edge['N'] ** (1 / self.temp))
 
-        action = random.choices(actions, weights)[0]
+        new_root = random.choices(children, weights)[0]
+        action = self.root.children[new_root]['action']
 
-        return action
+        return action, new_root
 
 
-def mcts(env: EnvProtocol, net: Network, n_simulations: int, 
-         c_putc: float, temp: float) -> torch.IntTensor:
-    """Monte Carlo Tree Search in environment env using network net.
+def mcts(tree: Tree, n_simulations: int) -> torch.IntTensor:
+    """Monte Carlo Tree Search
     
-    :param env: environment
-    :param net: network
+    :param tree: starting tree
     :param n_simulations: number of simulations
-    :param temp: temperature parameter for selecting final action
 
-    :return action: 4D tensor (b.s. = 1) corresponding to action chosen by MCTS
+    :return: tuple (action, new_root) where:
+        action: tensor [[dir, row, col]] corresponding to action taken
+        new_root: Node object resulting from action
     """
-    tree = Tree(env, net, c_putc, temp)
-
     for _ in range(n_simulations):
         tree.simulation()
 
-    action = tree.get_action()
-    return action
-
-
+    action, new_root = tree.get_action()
+    return action, new_root
 

@@ -1,7 +1,7 @@
 from network import Network
 from protocols import EnvProtocol
 from two_kings import EnvTwoKings, action_mask
-from mcts import mcts
+from mcts import Tree, mcts
 
 import torch
 import random
@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 def self_play_game(env: EnvProtocol, 
                    net: Network, 
                    n_simulations: int,
-                   c_putc: float,
+                   c_puct: float,
                    temp: float,
                    print_move: Optional[bool]=False) -> list[tuple]:
     """Network net plays game in environment env against itself.
@@ -27,7 +27,7 @@ def self_play_game(env: EnvProtocol,
     :return buffer: list of (state, action, value) tuples where:
         state: 4D tensor (bs = 1) corresponding to state of the game
         action: tensor [[dir, row, col]] corresponding to action taken
-        value: 1D tensor: [[-1]], [[+1]], or [[0]] for white W, black W, draw
+        value: tensor: [[-1]], [[+1]], or [[0]] for white W, black W, draw
     """
 
     result = None
@@ -38,10 +38,15 @@ def self_play_game(env: EnvProtocol,
         print('  ', end='')
 
     # game loop
+    new_root = None
     while not result:
-        action = mcts(env, net, n_simulations=n_simulations, 
-                      c_putc=c_putc, temp=temp)
+        # initialize tree
+        tree = Tree(env, net, c_puct, temp, new_root)
+        # get action and new root Node
+        action, new_root = mcts(tree, n_simulations=n_simulations)
+        # append (state, action) to buffer
         buffer.append((state, action))
+        # step in env
         state, result = env.step(action, print_move=print_move)
 
     # add ground truth value (ie outcome of game) to items in buffer
@@ -69,7 +74,7 @@ def train(env: EnvProtocol,
           n_simulations: int,
           learning_rate: float,
           c_weight_decay: float,
-          c_putc: float,
+          c_puct: float,
           temp: float,
           checkpoint_interval: Optional[int]=None):
         
@@ -97,7 +102,7 @@ def train(env: EnvProtocol,
             env_clone = env.clone()
             buffer.extend(self_play_game(env_clone, net, 
                                          n_simulations=n_simulations, 
-                                         c_putc=c_putc, temp=temp,
+                                         c_puct=c_puct, temp=temp,
                                          print_move=True))
 
         # Use data to train model
@@ -164,7 +169,7 @@ if __name__ == '__main__':
         n_simulations=100,
         learning_rate=0.01,
         c_weight_decay=0.0,
-        c_putc=0.1, # higher value means more exploration
+        c_puct=0.1, # higher value means more exploration
         temp=1,
         checkpoint_interval=1 # should be an O(1) fraction of n_batches
     )

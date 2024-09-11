@@ -28,11 +28,11 @@ net = Network(
 def test_self_play_game():
     env = EnvTwoKings()
     n_simulations = 10
-    c_putc = 0.1
+    c_puct = 0.1
     temp = 1
 
     buffer = train.self_play_game(env, net, n_simulations=n_simulations,
-                                  c_putc=c_putc, temp=temp)
+                                  c_puct=c_puct, temp=temp)
 
     assert 4 <= len(buffer) <= 20
     state, action, value = buffer[0]
@@ -49,7 +49,7 @@ def test_train():
     n_simulations=3
     learning_rate=0.01
     c_weight_decay=0.0
-    c_putc=0.1
+    c_puct=0.1
     temp=1.0
 
     losses, losses_pol, losses_val = train.train(
@@ -62,7 +62,7 @@ def test_train():
         n_simulations=n_simulations,
         learning_rate=learning_rate,
         c_weight_decay=c_weight_decay,
-        c_putc=c_putc,
+        c_puct=c_puct,
         temp=temp
     )
 
