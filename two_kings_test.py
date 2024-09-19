@@ -57,7 +57,7 @@ def test_EnvTwoKings():
     assert env.color == 'black'
 
     # move count should be 1
-    assert env.move == 1
+    assert env.move_num == 1
 
     #############################  Black c5 to c4  #############################
 
@@ -81,7 +81,7 @@ def test_EnvTwoKings():
     assert env.color == 'white'
 
     # move count should be 2
-    assert env.move == 2
+    assert env.move_num == 2
 
     #############################  White d1 to d2  #############################
 
@@ -105,7 +105,7 @@ def test_EnvTwoKings():
     assert env.color == 'black'
 
     # move count should be 2
-    assert env.move == 2
+    assert env.move_num == 2
 
     #############################  Black c4 to c3  #############################
 
@@ -129,7 +129,7 @@ def test_EnvTwoKings():
     assert env.color == 'white'
 
     # move count should be 3
-    assert env.move == 3
+    assert env.move_num == 3
 
     #############################  White d2 to c2  #############################
 
@@ -153,7 +153,7 @@ def test_EnvTwoKings():
     assert env.color == 'black'
 
     # move count should be 3
-    assert env.move == 3
+    assert env.move_num == 3
 
     #######################  Black c3 to c2 (black wins)  ######################
 

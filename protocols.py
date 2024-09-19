@@ -21,7 +21,7 @@ class EnvProtocol(Protocol):
     def clone(self) -> 'EnvProtocol':
         ...
 
-    def get_square(self, action: torch.Tensor) -> str:
+    def get_move(self, action: torch.Tensor, color: Optional[str]) -> str:
         ...
         
     def step(self, action: torch.IntTensor, update_state: bool, print_move: bool) -> tuple:

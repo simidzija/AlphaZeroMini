@@ -3,6 +3,7 @@ from utils import action_dist
 from protocols import EnvProtocol
 
 import torch
+from torch.distributions.dirichlet import Dirichlet
 import math
 from typing import Optional
 import random
@@ -26,12 +27,26 @@ class Node:
     def __hash__(self):
         return hash(self.state.cpu().numpy().tobytes())
     
+    @property
+    def color(self):
+        if self.state[0, 2, 0, 0] == -1:
+            return 'white'
+        elif self.state[0, 2, 0, 0] == 1:
+            return 'black'
+        else:
+            raise RuntimeError(f'self.state[0, 2] must have all elements equal to 0 or 1, but got {self.state[0, 2]}')
+        
+    @property
+    def move_num(self):
+        return int(self.state[0, 3, 0, 0].item())
+    
 class Tree:
-    def __init__(self, env: EnvProtocol, net: Network, c_puct: float, temp: float, new_root: Optional[Node]=None):
+    def __init__(self, env: EnvProtocol, net: Network, c_puct: float, temp: float, alpha_dir: float, new_root: Optional[Node]=None):
         self.env = env
         self.net = net
         self.c_puct = c_puct
         self.temp = temp
+        self.alpha_dir = alpha_dir
         if new_root is None:
             self.root = Node(env.state)
         elif isinstance(new_root, Node):
@@ -46,15 +61,32 @@ class Tree:
             result += f"{edge['P']:.2f}, "
             result += f"{edge['W']:.2f}, "
             result += f"{edge['Q']:.2f}"
-            result += ") --- Node\n"
+
+            action = edge['action']
+            # node represents the child of the "current node" so must adjust color and move_num accordingly
+            if node.color == 'white':
+                color = 'black'
+                move_num = node.move_num - 1
+            elif node.color == 'black':
+                color = 'white'
+                move_num = node.move_num
+
+            # get move
+            move = self.env.get_move(action, color)
+            result += f") --- {move_num}."
+            result += " ... " if color == 'black' else ""
+            result += f"{move}\n"
             return result
             
-        result = "Note: edges are labelled (N,P,W,Q).\n\n"
-        result += f'Root Node\n'
+        # edges are labelled (N,P,W,Q)
+        result = f'\n\nRoot Node\n'
+        
         stack = [(edge, node, 4) for node, edge in self.root.children.items()]
         while stack:
             edge, node, indent = stack.pop()
             result += edge_and_node(edge, node, indent)
+            if not node.children:
+                continue
             for child, edge in node.children.items():
                 stack.append((edge, child, indent + 4))
         
@@ -66,22 +98,23 @@ class Tree:
 
         # go from root to leaf
         while current.children:
+            # Take path which maximizes Q_color + U, where Q_color is Q when the current player is black, and -Q if white. 
             max_Q_plus_U = -float('inf')
             for child in current.children:
                 edge = current.children[child]
                 P = edge['P']
                 N = edge['N']
-                Q = edge['Q']
+                Q_color = edge['Q'] if child.color == 'black' else -edge['Q']
                 sum_N = current.sum_N
                 if current.sum_N == 0:
-                    # the first time we explore actions from a node just sample using prior probs
+                    # the first time we explore actions from a node just take action with highest prior
                     U = P
                 else:
                     # otherwise use the PUCT formula from AlphaGo Zero appendix
                     U = self.c_puct * P * math.sqrt(sum_N) / (1 + N)
 
-                if Q + U > max_Q_plus_U:
-                    max_Q_plus_U = Q + U
+                if Q_color + U > max_Q_plus_U:
+                    max_Q_plus_U = Q_color + U
                     next_node = child
             path.append(next_node)
             current = next_node
@@ -98,20 +131,33 @@ class Tree:
             # get action distribution
             actions, probs = action_dist(logits)
 
+            # Dirichlet noise
+            if current is self.root:
+                concentration = torch.full((len(actions),), self.alpha_dir)
+                dir_dist = Dirichlet(concentration)
+                dir_sample = dir_dist.sample().tolist()
+            else:
+                dir_sample = [0] * len(actions)
+
             # create new leaves
-            for action, prob in zip(actions, probs):
+            for action, prob, dir_noise in zip(actions, probs, dir_sample):
                 state, result = env.step(action, update_state=False)
                 leaf = Node(state=state, result=result)
+                # Dirichlet noise to root's prior probs
                 # define edge from current to leaf
                 current.children[leaf] = {
                     'action': action, # action
-                    'P': prob, # prior prob
+                    'P': prob + dir_noise, # prior prob
                     'N': 0, # visit count
                     'W': 0, # total action value
                     'Q': 0 # mean action value
                 }
-        elif current.result == 'white' or current.result == 'black':
-            value = +1 if self.env.color == current.result else -1
+        elif current.result == 'black':
+            value = +1
+            # print(f"\nWin detected for black")
+        elif current.result == 'white':
+            value = -1
+            # print(f"\nWin detected for white")
         elif current.result == 'draw':
             value = 0
         else:

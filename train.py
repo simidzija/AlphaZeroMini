@@ -17,6 +17,7 @@ def self_play_game(env: EnvProtocol,
                    n_simulations: int,
                    c_puct: float,
                    temp: float,
+                   alpha_dir: float,
                    print_move: Optional[bool]=False) -> list[tuple]:
     """Network net plays game in environment env against itself.
     
@@ -41,9 +42,10 @@ def self_play_game(env: EnvProtocol,
     new_root = None
     while not result:
         # initialize tree
-        tree = Tree(env, net, c_puct, temp, new_root)
+        tree = Tree(env, net, c_puct, temp, alpha_dir, new_root)
         # get action and new root Node
         action, new_root = mcts(tree, n_simulations=n_simulations)
+        # print(tree)
         # append (state, action) to buffer
         buffer.append((state, action))
         # step in env
@@ -76,6 +78,7 @@ def train(env: EnvProtocol,
           c_weight_decay: float,
           c_puct: float,
           temp: float,
+          alpha_dir: float,
           checkpoint_interval: Optional[int]=None):
         
     assert buffer_size > batch_size
@@ -100,9 +103,12 @@ def train(env: EnvProtocol,
         # Collect data via self-play
         for _ in range(n_games_per_batch):
             env_clone = env.clone()
-            buffer.extend(self_play_game(env_clone, net, 
+            buffer.extend(self_play_game(env_clone, 
+                                         net, 
                                          n_simulations=n_simulations, 
-                                         c_puct=c_puct, temp=temp,
+                                         c_puct=c_puct, 
+                                         temp=temp, 
+                                         alpha_dir=alpha_dir,
                                          print_move=True))
 
         # Use data to train model
@@ -162,16 +168,17 @@ if __name__ == '__main__':
     losses, losses_pol, losses_val = train(
         env=EnvTwoKings(),
         net=net,
-        n_batches=5,
+        n_batches=50,
         n_games_per_batch=5,
         buffer_size=20, # should be < games * (least possible states/game)
         batch_size=10, # should be < buffer_size
-        n_simulations=100,
+        n_simulations=50,
         learning_rate=0.01,
         c_weight_decay=0.0,
         c_puct=0.1, # higher value means more exploration
-        temp=1,
-        checkpoint_interval=1 # should be an O(1) fraction of n_batches
+        temp=1.0,
+        alpha_dir=1.0,
+        checkpoint_interval=10 # should be an O(1) fraction of n_batches
     )
 
     plt.plot(losses, label='loss')
@@ -180,6 +187,12 @@ if __name__ == '__main__':
     plt.yscale('log')
     plt.legend()
     plt.show()
+
+    # env = EnvTwoKings()
+
+    # self_play_game(env, net, n_simulations=10, c_puct=0.1, temp=1, alpha_dir=1.0, print_move=True)
+
+
 
 
 

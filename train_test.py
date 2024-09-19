@@ -32,7 +32,7 @@ def test_self_play_game():
     temp = 1
 
     buffer = train.self_play_game(env, net, n_simulations=n_simulations,
-                                  c_puct=c_puct, temp=temp)
+                                  c_puct=c_puct, alpha_dir=1.0, temp=temp)
 
     assert 4 <= len(buffer) <= 20
     state, action, value = buffer[0]
@@ -51,6 +51,7 @@ def test_train():
     c_weight_decay=0.0
     c_puct=0.1
     temp=1.0
+    alpha_dir=1.0
 
     losses, losses_pol, losses_val = train.train(
         env=env,
@@ -63,6 +64,7 @@ def test_train():
         learning_rate=learning_rate,
         c_weight_decay=c_weight_decay,
         c_puct=c_puct,
+        alpha_dir=alpha_dir,
         temp=temp
     )
 

@@ -1,8 +1,10 @@
 import torch
 from network import Network
 import pygame
+
 import os
 import time
+from typing import Optional
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -109,7 +111,7 @@ class EnvTwoKings:
             raise RuntimeError(f'self.state[0, 2] must have all elements equal to 0 or 1, but got {self.state[0, 2]}')
 
     @property
-    def move(self):
+    def move_num(self):
         return int(self.state[0, 3, 0, 0].item())
 
     def new_env(self, state=None):
@@ -119,20 +121,23 @@ class EnvTwoKings:
         state = self.state.clone()
         return self.new_env(state=state)
     
-    def get_square(self, action: torch.Tensor) -> str:
-        """Return destination square associated with taking given action in self's state.
+    def get_move(self, action: torch.Tensor, color: Optional[str]=None) -> str:
+        """Return move when player of given color takes given action.
         
         :param action: index tensor [[dir, row, col]]
-        :return square: square in chess notation
+        :param color: 'black', 'white', or None
+        :return move: move in chess notation
         """
-        if self.color == 'white':
+        color = self.color if color is None else color
+
+        if color == 'white':
             ROWS = list('54321')
             COLS = list('abcde')
-        elif self.color == 'black':
+        elif color == 'black':
             ROWS = list('12345')
             COLS = list('edcba')
         else:
-            raise RuntimeError(f'color must be "black" or "white" but got {self.color}')
+            raise RuntimeError(f'color must be "black" or "white" but got {color}')
 
         idx_d, idx_r, idx_c = action.squeeze().tolist()
 
@@ -147,9 +152,9 @@ class EnvTwoKings:
         else:
             raise RuntimeError(f'idx_d must be 0, 1, 2, or 3 but got {idx_d}')
         
-        square = f'{col}{row}'
+        move = f'K{col}{row}'
 
-        return square
+        return move
 
 
     def step(self, action: torch.IntTensor, update_state=True, print_move=False) -> tuple:
@@ -164,11 +169,11 @@ class EnvTwoKings:
         assert action.dtype == torch.int, f'action.dtype should be torch.int but got {action.dtype}'
 
         if print_move:
-            square = self.get_square(action)
+            move = self.get_move(action)
             if self.color == 'white':
-                print(f'{self.move}.K{square}', end=' ')
+                print(f'{self.move_num}.{move}', end=' ')
             else:
-                print(f'K{square}', end=' ')
+                print(f'{move}', end=' ')
 
         if update_state:
             new_state = self.state
@@ -202,19 +207,19 @@ class EnvTwoKings:
             if print_move:
                 print(f'# {result} wins')
         # check if move limit reached
-        elif self.color == 'black' and self.move == self.move_limit:
+        elif self.color == 'black' and self.move_num == self.move_limit:
             result = 'draw'
             if print_move:
                 print('# draw')
         # otherwise play on: rotate board, change color, increase move count
         else:
+            result = None
             new_state[0, 0], new_state[0, 1] = new_state[0, 1].flip(0,1), new_state[0, 0].flip(0,1)
             if self.color == 'black':
                 new_state[0, 2] = -1 # change color to white
                 new_state[0, 3] += 1 # increase move count
             else:
                 new_state[0, 2] = 1 # change color to black
-            result = None
 
         return new_state.clone(), result
 
@@ -525,7 +530,7 @@ def play(net: Network, print_move=True):
                 pygame.display.flip()
 
                 # wait a bit on first move if ai is white
-                if ai_color == 'white' and env.move == 1:
+                if ai_color == 'white' and env.move_num == 1:
                     pygame.time.wait(1000)
 
             if player_move:
