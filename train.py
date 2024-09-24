@@ -90,9 +90,10 @@ def train(env: EnvProtocol,
     buffer = deque([], maxlen=buffer_size)  # items (state, action, value)
 
     # logging
-    losses = []
+    losses_tot = []
     losses_pol = []
     losses_val = []
+    win_frac_list = []
 
     for batch in range(n_batches):
 
@@ -111,13 +112,17 @@ def train(env: EnvProtocol,
                                          alpha_dir=alpha_dir,
                                          print_move=True))
 
-        # Use data to train model
         buffer_sample = random.sample(buffer, batch_size)
 
         state = torch.cat([item[0] for item in buffer_sample])
         action = torch.cat([item[1] for item in buffer_sample])
         value = torch.cat([item[2] for item in buffer_sample])
 
+        # Statistics of training values (are there many wins in training data?)
+        win_frac = value.flatten().tolist().count(1) / batch_size
+        win_frac_list.append(win_frac)
+
+        # Predict actions and values
         logits, value_pred = net(state)
 
         logits_flat = logits.flatten(1)
@@ -126,16 +131,18 @@ def train(env: EnvProtocol,
                        action[:, 2]) # converts 3D index to 1D index
         action_flat = action_flat.to(torch.long)
 
+        # Compute losses
         loss_pol = loss_fn_pol(logits_flat, action_flat)
         loss_val = loss_fn_val(value_pred, value)
-        loss = loss_pol + loss_val
+        loss_tot = loss_pol + loss_val
 
         losses_pol.append(loss_pol.item())
         losses_val.append(loss_val.item())
-        losses.append(loss.item())
+        losses_tot.append(loss_tot.item())
 
+        # Backprop and gradient descent
         optimizer.zero_grad()
-        loss.backward()
+        loss_tot.backward()
         optimizer.step()
 
         # Save checkpoint
@@ -145,10 +152,12 @@ def train(env: EnvProtocol,
 
         # Print progress
         if batch % print_freq == 0:
+            print(f'  loss_tot = {loss_tot.item():5.2f}')
             print(f'  loss_pol = {loss_pol.item():5.2f}')
             print(f'  loss_val = {loss_val.item():5.2f}')
+            print(f'  black win_frac = {win_frac}')
 
-    return losses, losses_pol, losses_val
+    return losses_tot, losses_pol, losses_val, win_frac_list
 
         
 if __name__ == '__main__':
@@ -165,25 +174,26 @@ if __name__ == '__main__':
         action_mask=action_mask
     )
 
-    losses, losses_pol, losses_val = train(
+    losses, losses_pol, losses_val, win_frac_list = train(
         env=EnvTwoKings(),
         net=net,
-        n_batches=50,
-        n_games_per_batch=5,
-        buffer_size=20, # should be < games * (least possible states/game)
-        batch_size=10, # should be < buffer_size
+        n_batches=1000,
+        n_games_per_batch=10,
+        buffer_size=40, # should be < games * (least possible states/game)
+        batch_size=32, # should be < buffer_size
         n_simulations=50,
         learning_rate=0.01,
         c_weight_decay=0.0,
         c_puct=0.1, # higher value means more exploration
         temp=1.0,
         alpha_dir=1.0,
-        checkpoint_interval=10 # should be an O(1) fraction of n_batches
+        checkpoint_interval=100 # should be an O(1) fraction of n_batches
     )
 
     plt.plot(losses, label='loss')
     plt.plot(losses_pol, label='loss_pol')
     plt.plot(losses_val, label='loss_val')
+    plt.plot(win_frac_list, label='black win_frac')
     plt.yscale('log')
     plt.legend()
     plt.show()
