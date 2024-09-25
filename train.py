@@ -1,6 +1,6 @@
 from network import Network
 from protocols import EnvProtocol
-from two_kings_2x2 import EnvTwoKings2x2, action_mask
+from two_kings_3x3 import EnvTwoKings3x3, action_mask
 from mcts import Tree, mcts
 
 import torch
@@ -17,6 +17,7 @@ def self_play_game(env: EnvProtocol,
                    c_puct: float,
                    temp: float,
                    alpha_dir: float,
+                   eps_dir: float,
                    print_move: Optional[bool]=False) -> list[tuple]:
     """Network net plays game in environment env against itself.
     
@@ -41,7 +42,7 @@ def self_play_game(env: EnvProtocol,
     new_root = None
     while not result:
         # initialize tree
-        tree = Tree(env, net, c_puct, temp, alpha_dir, new_root)
+        tree = Tree(env, net, c_puct, temp, alpha_dir, eps_dir, new_root)
         # get action and new root Node
         action, new_root = mcts(tree, n_simulations=n_simulations)
         # print(tree)
@@ -78,6 +79,7 @@ def train(env: EnvProtocol,
           c_puct: float,
           temp: float,
           alpha_dir: float,
+          eps_dir: float,
           checkpoint_interval: Optional[int]=None):
         
     assert buffer_size >= batch_size
@@ -111,6 +113,7 @@ def train(env: EnvProtocol,
                                          c_puct=c_puct, 
                                          temp=temp, 
                                          alpha_dir=alpha_dir,
+                                         eps_dir=eps_dir,
                                          print_move=True))
 
         buffer_sample = random.sample(buffer, batch_size)
@@ -142,10 +145,10 @@ def train(env: EnvProtocol,
         logits_white = logits_flat[white_mask]
         action_black = action_flat[black_mask]
         action_white = action_flat[white_mask]
-        print(f'logits_black: {logits_black}')
-        print(f'action_black: {action_black}')
-        print(f'logits_white: {logits_white}')
-        print(f'action_white: {action_white}')
+        # print(f'logits_black: {logits_black}')
+        # print(f'action_black: {action_black}')
+        # print(f'logits_white: {logits_white}')
+        # print(f'action_white: {action_white}')
 
         loss_pol_black = loss_fn_pol(logits_black, action_black)
         loss_pol_white = loss_fn_pol(logits_white, action_white)
@@ -173,10 +176,10 @@ def train(env: EnvProtocol,
         if batch % print_freq == 0:
             print(f'  loss_tot = {loss_tot.item():5.2f}')
             # print(f'  loss_pol = {loss_pol.item():5.2f}')
-            print(f'  loss_pol_black = {loss_pol_black.item():5.2f}')
-            print(f'  loss_pol_white = {loss_pol_white.item():5.2f}')
-            print(f'  loss_val = {loss_val.item():5.2f}')
-            print(f'  black win_frac = {win_frac}')
+            print(f'  loss_pol_black = {loss_pol_black.item():7.4f}')
+            print(f'  loss_pol_white = {loss_pol_white.item():7.4f}')
+            print(f'  loss_val = {loss_val.item():7.4f}')
+            print(f'  black win_frac = {win_frac:5.2f}')
 
     return losses_tot, losses_pol_black, losses_pol_white, losses_val, win_frac_list
 
@@ -185,7 +188,7 @@ if __name__ == '__main__':
 
     net = Network(
         num_in_channels=4,
-        board_size=2,
+        board_size=3,
         num_filters=8,
         kernel_size=1,
         num_res_blocks=6,
@@ -196,9 +199,9 @@ if __name__ == '__main__':
     )
 
     losses, losses_pol_black, losses_pol_white, losses_val, win_frac_list = train(
-        env=EnvTwoKings2x2(),
+        env=EnvTwoKings3x3(),
         net=net,
-        n_batches=100,
+        n_batches=1000,
         n_games_per_batch=10,
         buffer_size=20, # should be < games * (least possible states/game)
         batch_size=20, # should be <= buffer_size
@@ -208,7 +211,8 @@ if __name__ == '__main__':
         c_puct=0.1, # higher value means more exploration
         temp=1.0,
         alpha_dir=1.0,
-        checkpoint_interval=100 # should be an O(1) fraction of n_batches
+        eps_dir=0.25,
+        checkpoint_interval=200 # should be an O(1) fraction of n_batches
     )
 
     plt.plot(losses, label='loss')

@@ -1,7 +1,8 @@
 import torch
 from network import Network
-import pygame
+from mcts import Tree, mcts
 
+import pygame
 import os
 from typing import Optional
 
@@ -258,7 +259,7 @@ class EnvTwoKings3x3:
         return pos_dict
 
 
-def play(net: Network, print_move=True):
+def play(net: Network, n_simulations: int, print_move: bool=True):
   
     pygame.init()
 
@@ -570,9 +571,14 @@ def play(net: Network, print_move=True):
                             # print(f'Piece selected at pos {piece_pos_start}')
 
             elif not player_move:
-                # TODO: Modify this so that MCTS is used rather than greedy sampling
-                action = net.greedy_sample(env.state)
+                # get action using MCTS
+                # action = net.greedy_sample(env.state)
+                tree = Tree(env=env, net=net, c_puct=0.1, temp=1.0, alpha_dir=1.0, eps_dir=0.0)
+                action, _ = mcts(tree, n_simulations)
+
+                # perform action in env
                 _, result = env.step(action, print_move=True)
+
                 coords_dict = get_coords_dict(env.get_pos_dict(player_color))
                 if result is None:
                     player_move = True
@@ -601,24 +607,24 @@ def play(net: Network, print_move=True):
 if __name__ == '__main__':
     ##############   New NN   ##############
 
-    game_params = {
-        'num_in_channels': 4, 
-        'board_size': 3,
-        'num_out_channels': 4,
-        'action_mask': action_mask
-    }
-    architecture_params = {
-        'num_filters': 8,
-        'kernel_size': 3,
-        'num_res_blocks': 6,
-        'num_policy_filters': 2,
-        'value_hidden_layer_size': 64,
-    }
-    net = Network(**game_params, **architecture_params)
+    # game_params = {
+    #     'num_in_channels': 4, 
+    #     'board_size': 3,
+    #     'num_out_channels': 4,
+    #     'action_mask': action_mask
+    # }
+    # architecture_params = {
+    #     'num_filters': 8,
+    #     'kernel_size': 3,
+    #     'num_res_blocks': 6,
+    #     'num_policy_filters': 2,
+    #     'value_hidden_layer_size': 64,
+    # }
+    # net = Network(**game_params, **architecture_params)
 
-    # ##############   Trained NN   ##############
+    ##############   Trained NN   ##############
 
-    # filename = os.path.join('checkpoints', 'batch_50.pth')
-    # net = torch.load(filename)
+    filename = os.path.join('checkpoints', 'batch_100.pth')
+    net = torch.load(filename)
 
-    play(net)
+    play(net, n_simulations=100)

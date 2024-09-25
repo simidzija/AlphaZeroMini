@@ -41,12 +41,13 @@ class Node:
         return int(self.state[0, 3, 0, 0].item())
     
 class Tree:
-    def __init__(self, env: EnvProtocol, net: Network, c_puct: float, temp: float, alpha_dir: float, new_root: Optional[Node]=None):
+    def __init__(self, env: EnvProtocol, net: Network, c_puct: float, temp: float, alpha_dir: float, eps_dir: float, new_root: Optional[Node]=None):
         self.env = env
         self.net = net
         self.c_puct = c_puct
         self.temp = temp
         self.alpha_dir = alpha_dir
+        self.eps_dir = eps_dir
         if new_root is None:
             self.root = Node(env.state)
         elif isinstance(new_root, Node):
@@ -147,7 +148,7 @@ class Tree:
                 # define edge from current to leaf
                 current.children[leaf] = {
                     'action': action, # action
-                    'P': prob + dir_noise, # prior prob
+                    'P': prob + self.eps_dir * dir_noise, # prior prob
                     'N': 0, # visit count
                     'W': 0, # total action value
                     'Q': 0 # mean action value
