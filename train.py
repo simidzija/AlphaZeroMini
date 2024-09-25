@@ -1,12 +1,11 @@
 from network import Network
 from protocols import EnvProtocol
-from two_kings import EnvTwoKings, action_mask
+from two_kings_2x2 import EnvTwoKings2x2, action_mask
 from mcts import Tree, mcts
 
 import torch
 import random
 from collections import deque
-from tqdm import tqdm
 from typing import Optional
 import os
 import matplotlib.pyplot as plt
@@ -81,7 +80,7 @@ def train(env: EnvProtocol,
           alpha_dir: float,
           checkpoint_interval: Optional[int]=None):
         
-    assert buffer_size > batch_size
+    assert buffer_size >= batch_size
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, 
                                  weight_decay=c_weight_decay)
     loss_fn_pol = torch.nn.CrossEntropyLoss() 
@@ -91,7 +90,9 @@ def train(env: EnvProtocol,
 
     # logging
     losses_tot = []
-    losses_pol = []
+    # losses_pol = []
+    losses_pol_black = []
+    losses_pol_white = []
     losses_val = []
     win_frac_list = []
 
@@ -118,7 +119,7 @@ def train(env: EnvProtocol,
         action = torch.cat([item[1] for item in buffer_sample])
         value = torch.cat([item[2] for item in buffer_sample])
 
-        # Statistics of training values (are there many wins in training data?)
+        # Statistics of training values (wins vs draws)
         win_frac = value.flatten().tolist().count(1) / batch_size
         win_frac_list.append(win_frac)
 
@@ -131,12 +132,30 @@ def train(env: EnvProtocol,
                        action[:, 2]) # converts 3D index to 1D index
         action_flat = action_flat.to(torch.long)
 
-        # Compute losses
-        loss_pol = loss_fn_pol(logits_flat, action_flat)
-        loss_val = loss_fn_val(value_pred, value)
-        loss_tot = loss_pol + loss_val
+        # Color masks
+        black_mask = state[:, 2, 0, 0] == 1
+        white_mask = state[:, 2, 0, 0] == -1
 
-        losses_pol.append(loss_pol.item())
+        # Compute losses
+        # loss_pol = loss_fn_pol(logits_flat, action_flat)
+        logits_black = logits_flat[black_mask]
+        logits_white = logits_flat[white_mask]
+        action_black = action_flat[black_mask]
+        action_white = action_flat[white_mask]
+        print(f'logits_black: {logits_black}')
+        print(f'action_black: {action_black}')
+        print(f'logits_white: {logits_white}')
+        print(f'action_white: {action_white}')
+
+        loss_pol_black = loss_fn_pol(logits_black, action_black)
+        loss_pol_white = loss_fn_pol(logits_white, action_white)
+        loss_val = loss_fn_val(value_pred, value)
+
+        loss_tot = loss_pol_black + loss_pol_white + loss_val
+
+        # losses_pol.append(loss_pol.item())
+        losses_pol_black.append(loss_pol_black.item())
+        losses_pol_white.append(loss_pol_white.item())
         losses_val.append(loss_val.item())
         losses_tot.append(loss_tot.item())
 
@@ -153,20 +172,22 @@ def train(env: EnvProtocol,
         # Print progress
         if batch % print_freq == 0:
             print(f'  loss_tot = {loss_tot.item():5.2f}')
-            print(f'  loss_pol = {loss_pol.item():5.2f}')
+            # print(f'  loss_pol = {loss_pol.item():5.2f}')
+            print(f'  loss_pol_black = {loss_pol_black.item():5.2f}')
+            print(f'  loss_pol_white = {loss_pol_white.item():5.2f}')
             print(f'  loss_val = {loss_val.item():5.2f}')
             print(f'  black win_frac = {win_frac}')
 
-    return losses_tot, losses_pol, losses_val, win_frac_list
+    return losses_tot, losses_pol_black, losses_pol_white, losses_val, win_frac_list
 
         
 if __name__ == '__main__':
 
     net = Network(
         num_in_channels=4,
-        board_size=5,
+        board_size=2,
         num_filters=8,
-        kernel_size=3,
+        kernel_size=1,
         num_res_blocks=6,
         num_policy_filters=2,
         num_out_channels=4,
@@ -174,13 +195,13 @@ if __name__ == '__main__':
         action_mask=action_mask
     )
 
-    losses, losses_pol, losses_val, win_frac_list = train(
-        env=EnvTwoKings(),
+    losses, losses_pol_black, losses_pol_white, losses_val, win_frac_list = train(
+        env=EnvTwoKings2x2(),
         net=net,
-        n_batches=1000,
+        n_batches=100,
         n_games_per_batch=10,
-        buffer_size=40, # should be < games * (least possible states/game)
-        batch_size=32, # should be < buffer_size
+        buffer_size=20, # should be < games * (least possible states/game)
+        batch_size=20, # should be <= buffer_size
         n_simulations=50,
         learning_rate=0.01,
         c_weight_decay=0.0,
@@ -191,9 +212,11 @@ if __name__ == '__main__':
     )
 
     plt.plot(losses, label='loss')
-    plt.plot(losses_pol, label='loss_pol')
+    # plt.plot(losses_pol, label='loss_pol')
+    plt.plot(losses_pol_black, label='loss_pol_black')
+    plt.plot(losses_pol_white, label='loss_pol_white')
     plt.plot(losses_val, label='loss_val')
-    plt.plot(win_frac_list, label='black win_frac')
+    # plt.plot(win_frac_list, label='black win_frac')
     plt.yscale('log')
     plt.legend()
     plt.show()
@@ -201,9 +224,6 @@ if __name__ == '__main__':
     # env = EnvTwoKings()
 
     # self_play_game(env, net, n_simulations=10, c_puct=0.1, temp=1, alpha_dir=1.0, print_move=True)
-
-
-
 
 
 
