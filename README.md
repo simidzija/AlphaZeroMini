@@ -26,4 +26,5 @@ Given input features, we can determine the legal moves in the following way:
 In total only 2,3, or 4 out of the 100 possible actions are legal; the rest are illegal.
 
 ### TODO
-- Replace greedy sampling with MCTS during inference
+- Fix Env.step() so that color changes correctly when someone wins (needed for Tree.__str__() to print correct move)
+- Understand why training in 3x3 game collapses to 1. Kb2 Kb2. 

@@ -186,48 +186,50 @@ def train(env: EnvProtocol,
         
 if __name__ == '__main__':
 
-    net = Network(
-        num_in_channels=4,
-        board_size=3,
-        num_filters=8,
-        kernel_size=1,
-        num_res_blocks=6,
-        num_policy_filters=2,
-        num_out_channels=4,
-        value_hidden_layer_size=32,
-        action_mask=action_mask
-    )
+    # net = Network(
+    #     num_in_channels=4,
+    #     board_size=3,
+    #     num_filters=8,
+    #     kernel_size=1,
+    #     num_res_blocks=6,
+    #     num_policy_filters=2,
+    #     num_out_channels=4,
+    #     value_hidden_layer_size=32,
+    #     action_mask=action_mask
+    # )
 
-    losses, losses_pol_black, losses_pol_white, losses_val, win_frac_list = train(
-        env=EnvTwoKings3x3(),
-        net=net,
-        n_batches=1000,
-        n_games_per_batch=10,
-        buffer_size=20, # should be < games * (least possible states/game)
-        batch_size=20, # should be <= buffer_size
-        n_simulations=50,
-        learning_rate=0.01,
-        c_weight_decay=0.0,
-        c_puct=0.1, # higher value means more exploration
-        temp=1.0,
-        alpha_dir=1.0,
-        eps_dir=0.25,
-        checkpoint_interval=200 # should be an O(1) fraction of n_batches
-    )
+    # losses, losses_pol_black, losses_pol_white, losses_val, win_frac_list = train(
+    #     env=EnvTwoKings3x3(),
+    #     net=net,
+    #     n_batches=400,
+    #     n_games_per_batch=10,
+    #     buffer_size=20, # should be < games * (least possible states/game)
+    #     batch_size=20, # should be <= buffer_size
+    #     n_simulations=50,
+    #     learning_rate=0.01,
+    #     c_weight_decay=0.0,
+    #     c_puct=0.1, # higher value means more exploration
+    #     temp=1.0,
+    #     alpha_dir=1.0,
+    #     eps_dir=0.25,
+    #     checkpoint_interval=200 # should be an O(1) fraction of n_batches
+    # )
 
-    plt.plot(losses, label='loss')
-    # plt.plot(losses_pol, label='loss_pol')
-    plt.plot(losses_pol_black, label='loss_pol_black')
-    plt.plot(losses_pol_white, label='loss_pol_white')
-    plt.plot(losses_val, label='loss_val')
-    # plt.plot(win_frac_list, label='black win_frac')
-    plt.yscale('log')
-    plt.legend()
-    plt.show()
+    # plt.plot(losses, label='loss')
+    # # plt.plot(losses_pol, label='loss_pol')
+    # plt.plot(losses_pol_black, label='loss_pol_black')
+    # plt.plot(losses_pol_white, label='loss_pol_white')
+    # plt.plot(losses_val, label='loss_val')
+    # # plt.plot(win_frac_list, label='black win_frac')
+    # plt.yscale('log')
+    # plt.legend()
+    # plt.show()
 
-    # env = EnvTwoKings()
+    env = EnvTwoKings3x3()
+    filename = os.path.join('checkpoints', 'batch_200.pth')
+    net = torch.load(filename)
 
-    # self_play_game(env, net, n_simulations=10, c_puct=0.1, temp=1, alpha_dir=1.0, print_move=True)
+    self_play_game(env, net, n_simulations=10, c_puct=0.1, temp=1, alpha_dir=1.0, eps_dir=0.25, print_move=True)
 
 
 

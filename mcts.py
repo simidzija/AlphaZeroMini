@@ -56,6 +56,7 @@ class Tree:
     
     def __str__(self):
         def edge_and_node(edge: dict, node: Node, indent: int) -> str:
+            """Prints edge and child node."""
             result = " " * indent
             result += "--- ("
             result += f"{edge['N']:2d}, "
@@ -114,6 +115,7 @@ class Tree:
                     # otherwise use the PUCT formula from AlphaGo Zero appendix
                     U = self.c_puct * P * math.sqrt(sum_N) / (1 + N)
 
+                # print(f'Q_color: {Q_color:.4f}, U = {U:.4f}, Q_color+U: {Q_color + U:.4f}')
                 if Q_color + U > max_Q_plus_U:
                     max_Q_plus_U = Q_color + U
                     next_node = child
@@ -148,7 +150,7 @@ class Tree:
                 # define edge from current to leaf
                 current.children[leaf] = {
                     'action': action, # action
-                    'P': prob + self.eps_dir * dir_noise, # prior prob
+                    'P': (1 - self.eps_dir) * prob + self.eps_dir * dir_noise, # prior prob
                     'N': 0, # visit count
                     'W': 0, # total action value
                     'Q': 0 # mean action value
@@ -172,6 +174,8 @@ class Tree:
                 edge['W'] += value
                 edge['Q'] = edge['W'] / edge['N']
                 parent.sum_N += 1
+
+        print(self)
 
     def get_action(self):
         """Sample action based on weights given by N^(1/T) where T is temp.

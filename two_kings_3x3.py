@@ -213,15 +213,16 @@ class EnvTwoKings3x3:
             result = 'draw'
             if print_move:
                 print('# draw')
-        # otherwise play on: rotate board, change color, increase move count
         else:
             result = None
-            new_state[0, 0], new_state[0, 1] = new_state[0, 1].flip(0,1), new_state[0, 0].flip(0,1)
-            if self.color == 'black':
-                new_state[0, 2] = -1 # change color to white
-                new_state[0, 3] += 1 # increase move count
-            else:
-                new_state[0, 2] = 1 # change color to black
+
+        # rotate board, change color, increase move count
+        new_state[0, 0], new_state[0, 1] = new_state[0, 1].flip(0,1), new_state[0, 0].flip(0,1)
+        if self.color == 'black':
+            new_state[0, 2] = -1 # change color to white
+            new_state[0, 3] += 1 # increase move count
+        else:
+            new_state[0, 2] = 1 # change color to black
 
         return new_state.clone(), result
 
@@ -255,7 +256,7 @@ class EnvTwoKings3x3:
             elif self.color == 'black':
                 pos_dict['white'] = P2_K if P2_K else None
                 pos_dict['black'] = P1_K if P1_K else None
-        
+
         return pos_dict
 
 
@@ -559,8 +560,7 @@ def play(net: Network, n_simulations: int, print_move: bool=True):
                             _, result = env.step(action, print_move=print_move)
                             coords_dict = get_coords_dict(
                                 env.get_pos_dict(player_color))
-                            if result is None:
-                                player_move = False
+                            player_move = False
                             pygame.event.post(fake_event)
                     elif not piece_selected:
                         if piece_pos_start is None:
@@ -580,8 +580,7 @@ def play(net: Network, n_simulations: int, print_move: bool=True):
                 _, result = env.step(action, print_move=True)
 
                 coords_dict = get_coords_dict(env.get_pos_dict(player_color))
-                if result is None:
-                    player_move = True
+                player_move = True
                 
             # Draw
             window.fill(DARK_BROWN)
