@@ -1,4 +1,4 @@
-import train
+from train import train, self_play_game
 from network import Network
 from two_kings import EnvTwoKings, action_mask
 
@@ -31,8 +31,13 @@ def test_self_play_game():
     c_puct = 0.1
     temp = 1
 
-    buffer = train.self_play_game(env, net, n_simulations=n_simulations,
-                                  c_puct=c_puct, alpha_dir=1.0, temp=temp)
+    buffer = self_play_game(env, 
+                            net, 
+                            n_simulations=n_simulations,
+                            c_puct=c_puct,
+                            alpha_dir=1.0,
+                            eps_dir=0.5,
+                            temp=temp)
 
     assert 4 <= len(buffer) <= 20
     state, action, value = buffer[0]
@@ -52,8 +57,9 @@ def test_train():
     c_puct=0.1
     temp=1.0
     alpha_dir=1.0
+    eps_dir=0.5
 
-    losses, losses_pol, losses_val = train.train(
+    losses, losses_pol_black, losses_pol_white, losses_val, win_frac = train(
         env=env,
         net=net,
         n_batches=n_batches,
@@ -65,12 +71,15 @@ def test_train():
         c_weight_decay=c_weight_decay,
         c_puct=c_puct,
         alpha_dir=alpha_dir,
+        eps_dir=eps_dir,
         temp=temp
     )
 
     assert len(losses) == n_batches
-    assert len(losses_pol) == n_batches
+    assert len(losses_pol_black) == n_batches
+    assert len(losses_pol_white) == n_batches
     assert len(losses_val) == n_batches
+    assert len(win_frac) == n_batches
 
 
 

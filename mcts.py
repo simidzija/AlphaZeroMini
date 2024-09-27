@@ -57,13 +57,7 @@ class Tree:
     def __str__(self):
         def edge_and_node(edge: dict, node: Node, indent: int) -> str:
             """Prints edge and child node."""
-            result = " " * indent
-            result += "--- ("
-            result += f"{edge['N']:2d}, "
-            result += f"{edge['P']:.2f}, "
-            result += f"{edge['W']:.2f}, "
-            result += f"{edge['Q']:.2f}"
-
+            
             action = edge['action']
             # node represents the child of the "current node" so must adjust color and move_num accordingly
             if node.color == 'white':
@@ -73,6 +67,14 @@ class Tree:
                 color = 'white'
                 move_num = node.move_num
 
+            result = " " * indent
+            result += "B " if color == 'black' else "W "
+            result += "--- ("
+            result += f"{edge['N']:2d}, "
+            result += f"{edge['P']:.2f}, "
+            result += f"{edge['W']:.2f}, "
+            result += f"{edge['Q']:.2f}"
+        
             # get move
             move = self.env.get_move(action, color)
             result += f") --- {move_num}."
@@ -175,7 +177,7 @@ class Tree:
                 edge['Q'] = edge['W'] / edge['N']
                 parent.sum_N += 1
 
-        print(self)
+        # print(self)
 
     def get_action(self):
         """Sample action based on weights given by N^(1/T) where T is temp.

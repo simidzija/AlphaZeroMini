@@ -1,9 +1,9 @@
 import torch
 from network import Network
-import pygame
+from mcts import Tree, mcts
 
+import pygame
 import os
-import time
 from typing import Optional
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,24 +11,26 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 def action_mask(state: torch.Tensor) -> torch.BoolTensor:
     """Mask of allowed actions.
 
-    :param state: bx4x5x5 tensor. Each batch b has 4 5x5 planes: P1 pos, P2 pos, color, move number
-    :return mask: bx4x5x5 tensor. Each batch b has 4 5x5 planes: move up, down, left, right
+    :param state: Each batch has 4 board planes: P1 pos, P2 pos, color, move number
+    :return mask: Each batch has 4 board planes: move up, down, left, right
     """
     # TODO: Figure out a more efficient / "torchy" implementation
 
+    board_size = 5
+
     num_batches = state.size(0)
-    mask = torch.zeros(num_batches, 4, 5, 5, dtype=torch.bool)
+    mask = torch.zeros(num_batches, 4, board_size, board_size, dtype=torch.bool)
 
     for b in range(num_batches):
         row, col = state[b, 0].nonzero(as_tuple=True)
 
         if row > 0:
             mask[b, 0, row, col] = 1
-        if row < 4:
+        if row < board_size - 1:
             mask[b, 1, row, col] = 1
         if col > 0:
             mask[b, 2, row, col] = 1
-        if col < 4:
+        if col < board_size - 1:
             mask[b, 3, row, col] = 1
     
     return mask
@@ -87,7 +89,7 @@ class EnvTwoKings:
     def __init__(self, state=None):
         self.in_features = 4
         self.board_size = 5
-        self.move_limit = 10
+        self.move_limit = 5
 
         if isinstance(state, torch.Tensor):
             self.state = state
@@ -131,11 +133,11 @@ class EnvTwoKings:
         color = self.color if color is None else color
 
         if color == 'white':
-            ROWS = list('54321')
-            COLS = list('abcde')
+            ROWS = list('87654321')[-self.board_size:]
+            COLS = list('abcdefgh')[:self.board_size]
         elif color == 'black':
-            ROWS = list('12345')
-            COLS = list('edcba')
+            ROWS = list('12345678')[:self.board_size]
+            COLS = list('hgfedcba')[-self.board_size:]
         else:
             raise RuntimeError(f'color must be "black" or "white" but got {color}')
 
@@ -162,7 +164,7 @@ class EnvTwoKings:
         
         :param action: int tensor [[dir, row, col]] (batch size of 1)
         :return: tuple (state, result) where:
-            state: tensor of shape (1,4,5,5)
+            state: tensor of shape (1,4,board_size,board_size)
             result: "white", "black", "draw" or None (if game not over)
         """
         assert action.shape == torch.Size([1,3]), f'action.shape should be [1,3] but got {action.shape}'
@@ -211,15 +213,16 @@ class EnvTwoKings:
             result = 'draw'
             if print_move:
                 print('# draw')
-        # otherwise play on: rotate board, change color, increase move count
         else:
             result = None
-            new_state[0, 0], new_state[0, 1] = new_state[0, 1].flip(0,1), new_state[0, 0].flip(0,1)
-            if self.color == 'black':
-                new_state[0, 2] = -1 # change color to white
-                new_state[0, 3] += 1 # increase move count
-            else:
-                new_state[0, 2] = 1 # change color to black
+
+        # rotate board, change color, increase move count
+        new_state[0, 0], new_state[0, 1] = new_state[0, 1].flip(0,1), new_state[0, 0].flip(0,1)
+        if self.color == 'black':
+            new_state[0, 2] = -1 # change color to white
+            new_state[0, 3] += 1 # increase move count
+        else:
+            new_state[0, 2] = 1 # change color to black
 
         return new_state.clone(), result
 
@@ -253,19 +256,20 @@ class EnvTwoKings:
             elif self.color == 'black':
                 pos_dict['white'] = P2_K if P2_K else None
                 pos_dict['black'] = P1_K if P1_K else None
-        
+
         return pos_dict
 
 
-def play(net: Network, print_move=True):
+def play(net: Network, n_simulations: int, print_move: bool=True):
   
     pygame.init()
 
     # Board and square sizes
-    WIDTH, HEIGHT = 1100, 1100
     BOARD_SIZE = 5
     SQUARE_SIZE = 200
     LABEL_SIZE = 50
+    WIDTH = SQUARE_SIZE * BOARD_SIZE + 2 * LABEL_SIZE
+    HEIGHT = SQUARE_SIZE * BOARD_SIZE + 2 * LABEL_SIZE
 
     # Colours
     WHITE = (255, 255, 255)
@@ -556,8 +560,7 @@ def play(net: Network, print_move=True):
                             _, result = env.step(action, print_move=print_move)
                             coords_dict = get_coords_dict(
                                 env.get_pos_dict(player_color))
-                            if result is None:
-                                player_move = False
+                            player_move = False
                             pygame.event.post(fake_event)
                     elif not piece_selected:
                         if piece_pos_start is None:
@@ -568,12 +571,15 @@ def play(net: Network, print_move=True):
                             # print(f'Piece selected at pos {piece_pos_start}')
 
             elif not player_move:
-                # TODO: Modify this so that MCTS is used rather than greedy sampling
-                action = net.greedy_sample(env.state)
+                # get action using MCTS
+                tree = Tree(env=env, net=net, c_puct=0.1, temp=1.0, alpha_dir=1.0, eps_dir=0.0)
+                action, _ = mcts(tree, n_simulations)
+
+                # perform action in env
                 _, result = env.step(action, print_move=True)
+
                 coords_dict = get_coords_dict(env.get_pos_dict(player_color))
-                if result is None:
-                    player_move = True
+                player_move = True
                 
             # Draw
             window.fill(DARK_BROWN)
@@ -599,24 +605,24 @@ def play(net: Network, print_move=True):
 if __name__ == '__main__':
     ##############   New NN   ##############
 
-    # game_params = {
-    #     'num_in_channels': 4, 
-    #     'board_size': 5,
-    #     'num_out_channels': 4,
-    #     'action_mask': action_mask
-    # }
-    # architecture_params = {
-    #     'num_filters': 8,
-    #     'kernel_size': 3,
-    #     'num_res_blocks': 6,
-    #     'num_policy_filters': 2,
-    #     'value_hidden_layer_size': 64,
-    # }
-    # net = Network(**game_params, **architecture_params)
+    game_params = {
+        'num_in_channels': 4, 
+        'board_size': 5,
+        'num_out_channels': 4,
+        'action_mask': action_mask
+    }
+    architecture_params = {
+        'num_filters': 8,
+        'kernel_size': 3,
+        'num_res_blocks': 6,
+        'num_policy_filters': 2,
+        'value_hidden_layer_size': 64,
+    }
+    net = Network(**game_params, **architecture_params)
 
     ##############   Trained NN   ##############
 
-    filename = os.path.join('checkpoints', 'batch_50.pth')
-    net = torch.load(filename)
+    # filename = os.path.join('checkpoints', 'batch_50.pth')
+    # net = torch.load(filename)
 
-    play(net)
+    play(net, n_simulations=100)

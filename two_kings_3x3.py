@@ -572,7 +572,6 @@ def play(net: Network, n_simulations: int, print_move: bool=True):
 
             elif not player_move:
                 # get action using MCTS
-                # action = net.greedy_sample(env.state)
                 tree = Tree(env=env, net=net, c_puct=0.1, temp=1.0, alpha_dir=1.0, eps_dir=0.0)
                 action, _ = mcts(tree, n_simulations)
 

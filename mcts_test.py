@@ -18,7 +18,7 @@ net = Network(
 
 def test_Tree():
     env = EnvTwoKings()
-    tree = Tree(env, net, c_puct=0.1, temp=1, alpha_dir=1.0, new_root=None)
+    tree = Tree(env, net, c_puct=0.1, temp=1, alpha_dir=1.0, eps_dir=0.5, new_root=None)
 
     tree.simulation()
     assert len(tree.root.children) == 3
@@ -42,7 +42,7 @@ def test_Tree():
     
 def test_mcts():
     env = EnvTwoKings()
-    tree = Tree(env, net, c_puct=0.1, temp=1, alpha_dir=1.0, new_root=None)
+    tree = Tree(env, net, c_puct=0.1, temp=1, alpha_dir=1.0, eps_dir=0.5, new_root=None)
     action, new_root = mcts(tree, n_simulations=10)
 
     assert action.shape == torch.Size([1,3])
@@ -51,8 +51,3 @@ def test_mcts():
     assert action[0,2] == 2, f'col index of king in starting position should be 2 but got {action[0,2]}'
     assert isinstance(new_root, Node)
 
-
-tree = Tree(EnvTwoKings(), net, c_puct=0.1, temp=1, alpha_dir=1.0)
-mcts(tree, n_simulations=10)
-
-print(tree)
