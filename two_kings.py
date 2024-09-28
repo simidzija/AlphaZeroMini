@@ -89,7 +89,7 @@ class EnvTwoKings:
     def __init__(self, state=None):
         self.in_features = 4
         self.board_size = 5
-        self.move_limit = 5
+        self.move_limit = 10
 
         if isinstance(state, torch.Tensor):
             self.state = state

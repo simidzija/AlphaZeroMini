@@ -1,6 +1,6 @@
 from network import Network
 from protocols import EnvProtocol
-from two_kings_3x3 import EnvTwoKings3x3, action_mask
+from two_kings import EnvTwoKings, action_mask
 from mcts import Tree, mcts
 
 import torch
@@ -198,7 +198,6 @@ def train(env: EnvProtocol,
         # Print progress
         if batch % print_freq == 0:
             print(f'  loss_tot = {loss_tot.item():5.2f}')
-            # print(f'  loss_pol = {loss_pol.item():5.2f}')
             print(f'  loss_pol_black = {loss_pol_black.item():7.4f}')
             print(f'  loss_pol_white = {loss_pol_white.item():7.4f}')
             print(f'  loss_val = {loss_val.item():7.4f}')
@@ -209,9 +208,16 @@ def train(env: EnvProtocol,
         
 if __name__ == '__main__':
 
+    # state = torch.zeros(1, 4, 5, 5)
+    # state[0, 0, 4, 2] = 1 # P1 at c1
+    # state[0, 1, 3, 2] = 1 # P2 at c2
+    # state[0, 2] = 1 # black to move
+    # state[0, 3] = 10 # move 10
+
+    env = EnvTwoKings()
     net = Network(
         num_in_channels=4,
-        board_size=3,
+        board_size=5,
         num_filters=8,
         kernel_size=1,
         num_res_blocks=6,
@@ -221,20 +227,24 @@ if __name__ == '__main__':
         action_mask=action_mask
     )
 
+    # tree = Tree(env, net, c_puct=0.5, temp=1.0, alpha_dir=1.0, eps_dir=0.25)
+    # mcts(tree, n_simulations=800)
+    # print(tree)
+
     losses, losses_pol_black, losses_pol_white, losses_val, win_frac_list = train(
-        env=EnvTwoKings3x3(),
+        env=env,
         net=net,
-        n_batches=200,
-        n_games_per_batch=10,
-        buffer_size=20, # should be < games * (least possible states/game)
-        batch_size=20, # should be <= buffer_size
-        n_simulations=50,
+        n_batches=10,
+        n_games_per_batch=5,
+        buffer_size=50, # should be < games * (least possible states/game)
+        batch_size=50, # should be <= buffer_size
+        n_simulations=400,
         learning_rate=0.01,
         c_weight_decay=0.0,
-        c_puct=0.1, # higher value means more exploration
+        c_puct=0.5, # higher value means more exploration
         temp=1.0,
         alpha_dir=1.0,
-        eps_dir=0.5,
+        eps_dir=0.25,
         checkpoint_interval=100 # should be an O(1) fraction of n_batches
     )
 
@@ -248,11 +258,12 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
 
-    # env = EnvTwoKings3x3()
     # filename = os.path.join('checkpoints', 'batch_200.pth')
     # net = torch.load(filename)
 
-    # self_play_game(env, net, n_simulations=10, c_puct=0.1, temp=1, alpha_dir=1.0, eps_dir=0.25, print_move=True)
+
+
+
 
 
 

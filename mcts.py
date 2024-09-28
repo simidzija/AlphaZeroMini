@@ -67,34 +67,46 @@ class Tree:
                 color = 'white'
                 move_num = node.move_num
 
-            result = " " * indent
-            result += "B " if color == 'black' else "W "
-            result += "--- ("
-            result += f"{edge['N']:2d}, "
-            result += f"{edge['P']:.2f}, "
-            result += f"{edge['W']:.2f}, "
-            result += f"{edge['Q']:.2f}"
+            string = " " * indent
+            string += "B " if color == 'black' else "W "
+            string += "--- ("
+            string += f"{edge['N']:2d}, "
+            string += f"{edge['P']:.2f}, "
+            string += f"{edge['W']:.2f}, "
+            string += f"{edge['Q']:.2f}"
         
-            # get move
+            # move
             move = self.env.get_move(action, color)
-            result += f") --- {move_num}."
-            result += " ... " if color == 'black' else ""
-            result += f"{move}\n"
-            return result
+            string += f") --- {move_num}."
+            string += " ... " if color == 'black' else ""
+            string += f"{move}"
+
+            # result (if simulation reached end of game)
+            result = node.result
+            if result == 'black':
+                string += " BLACK WIN\n"
+            elif result == 'white':
+                string += " WHITE WIN\n"
+            elif result == 'draw':
+                string += " DRAW\n" 
+            else:
+                string += "\n"
+            
+            return string
             
         # edges are labelled (N,P,W,Q)
-        result = f'\n\nRoot Node\n'
+        string = f'\n\nRoot Node\n'
         
         stack = [(edge, node, 4) for node, edge in self.root.children.items()]
         while stack:
             edge, node, indent = stack.pop()
-            result += edge_and_node(edge, node, indent)
+            string += edge_and_node(edge, node, indent)
             if not node.children:
                 continue
             for child, edge in node.children.items():
                 stack.append((edge, child, indent + 4))
         
-        return result
+        return string
 
     def simulation(self):
         current = self.root
@@ -108,7 +120,7 @@ class Tree:
                 edge = current.children[child]
                 P = edge['P']
                 N = edge['N']
-                Q_color = edge['Q'] if child.color == 'black' else -edge['Q']
+                Q_color = edge['Q'] if current.color == 'black' else -edge['Q']
                 sum_N = current.sum_N
                 if current.sum_N == 0:
                     # the first time we explore actions from a node just take action with highest prior
@@ -148,7 +160,6 @@ class Tree:
             for action, prob, dir_noise in zip(actions, probs, dir_sample):
                 state, result = env.step(action, update_state=False)
                 leaf = Node(state=state, result=result)
-                # Dirichlet noise to root's prior probs
                 # define edge from current to leaf
                 current.children[leaf] = {
                     'action': action, # action
