@@ -1,3 +1,12 @@
+"""
+Monte Carlo Tree Search.
+
+This module defines classes and methods for implementing Monte Carlo Tree Search (MCTS). It includes:
+    - Tree: class for MCTS trees
+    - Node: class for nodes within an MCTS Tree
+    - mcts: method for performing MCTS simulations on a Tree
+"""
+
 from network import Network
 from utils import action_dist
 from protocols import EnvProtocol
@@ -9,6 +18,9 @@ from typing import Optional
 import random
 
 class Node:
+    """
+    Class for nodes within an MCTS tree.
+    """
     def __init__(self, state: torch.BoolTensor, result=None):
         self.state = state
         self.result = result
@@ -41,6 +53,13 @@ class Node:
         return int(self.state[0, 3, 0, 0].item())
     
 class Tree:
+    """
+    Class for MCTS trees. It includes the following methods:
+        - simulation: method for performing a simulation (traversal from root 
+          to node) within the tree
+        - get_action: method for sampling actions from the root node. Typically
+          used after performing simulations on the tree.
+    """
     def __init__(self, env: EnvProtocol, net: Network, c_puct: float, temp: float, alpha_dir: float, eps_dir: float, new_root: Optional[Node]=None):
         self.env = env
         self.net = net
@@ -109,6 +128,9 @@ class Tree:
         return string
 
     def simulation(self):
+        """
+        Perform simulation on the tree using the AlphaZero algorithm.
+        """
         current = self.root
         path = [current]
 

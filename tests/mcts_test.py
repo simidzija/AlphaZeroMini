@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from mcts import Node, Tree, mcts
 from network import Network
 from two_kings import EnvTwoKings, action_mask
