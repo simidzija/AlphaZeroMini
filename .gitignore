@@ -4,3 +4,5 @@
 __pycache__
 plots/
 checkpoints/
+two_kings_2x2.py
+two_kings_3x3.py

@@ -208,12 +208,6 @@ def train(env: EnvProtocol,
         
 if __name__ == '__main__':
 
-    # state = torch.zeros(1, 4, 5, 5)
-    # state[0, 0, 4, 2] = 1 # P1 at c1
-    # state[0, 1, 3, 2] = 1 # P2 at c2
-    # state[0, 2] = 1 # black to move
-    # state[0, 3] = 10 # move 10
-
     env = EnvTwoKings()
     net = Network(
         num_in_channels=4,
@@ -227,39 +221,31 @@ if __name__ == '__main__':
         action_mask=action_mask
     )
 
-    # tree = Tree(env, net, c_puct=0.5, temp=1.0, alpha_dir=1.0, eps_dir=0.25)
-    # mcts(tree, n_simulations=800)
-    # print(tree)
-
     losses, losses_pol_black, losses_pol_white, losses_val, win_frac_list = train(
         env=env,
         net=net,
-        n_batches=10,
+        n_batches=100,
         n_games_per_batch=5,
         buffer_size=50, # should be < games * (least possible states/game)
         batch_size=50, # should be <= buffer_size
-        n_simulations=400,
+        n_simulations=100,
         learning_rate=0.01,
         c_weight_decay=0.0,
-        c_puct=0.5, # higher value means more exploration
-        temp=1.0,
-        alpha_dir=1.0,
-        eps_dir=0.25,
+        c_puct=0.5, # higher value favours prior probabilities
+        temp=1.0, # higher value means more exploration
+        alpha_dir=0.5, # higher value means more exploration
+        eps_dir=0.25, # higher value means more exploration
         checkpoint_interval=100 # should be an O(1) fraction of n_batches
     )
 
     plt.plot(losses, label='loss')
-    # plt.plot(losses_pol, label='loss_pol')
     plt.plot(losses_pol_black, label='loss_pol_black')
     plt.plot(losses_pol_white, label='loss_pol_white')
     plt.plot(losses_val, label='loss_val')
-    # plt.plot(win_frac_list, label='black win_frac')
     plt.yscale('log')
     plt.legend()
     plt.show()
 
-    # filename = os.path.join('checkpoints', 'batch_200.pth')
-    # net = torch.load(filename)
 
 
 
