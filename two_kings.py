@@ -1,3 +1,19 @@
+"""
+Two Kings.
+
+This module implements the Two Kings game, a simplified version of chess played on a 5x5 board between only two kings. The rules of the game are as follows:
+
+The kings start on opposite sides of the board and they can only move horizontally and vertically (not diagonally). White moves first, and the goal of the game is to take the opponents king. If no one succeeds to do so within 10 moves, the game is declared a draw.
+
+Because diagonal moves are not allowed, the game is such that it is impossible for white to win, and optimal play results in a black win in 5 moves.
+
+This module implements various methods / classes. The most high level ones are:
+    - EnvTwoKings: class for the Two Kings game environment
+    - play: method to play the Two Kings game in a GUI, against a neural network
+    
+Running this file as a script calls play(), allowing the user to play Two Kings against a neural network.
+"""
+
 import torch
 from network import Network
 from mcts import Tree, mcts

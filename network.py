@@ -1,3 +1,14 @@
+"""
+Neural network for board games.
+
+This module implements a convolutional neural network with the AlphaZero architecture. Specifically, the following classes are defined:
+    - ResBlock: class implementing two convolutional layers with a skip
+      connection between them
+    - PolicyHead: class for the policy head
+    - ValueHead: class for the value head
+    - Network: class combining the policy and value heads into a single network
+"""
+
 import torch
 from torch import nn
 from torch.distributions import Categorical
@@ -174,19 +185,3 @@ class Network(nn.Module):
         actions = torch.stack(torch.unravel_index(actions, shape)).T
 
         return actions.to(torch.int)
-
-
-
-# MCTS (think about how to structure this)
-
-
-
-# Training function
-
-
-
-# Save final model to disk
-
-
-
-# Load and play trained model

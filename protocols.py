@@ -1,3 +1,7 @@
+"""
+Base protocol EnvProtocol for board game environment classes.
+"""
+
 from typing import Protocol, Optional
 import torch
 
@@ -12,7 +16,7 @@ class EnvProtocol(Protocol):
         ...
     
     @property
-    def move(self) -> int:
+    def move_num(self) -> int:
         ...
 
     def new_env(self, state: Optional[torch.Tensor]) -> 'EnvProtocol':

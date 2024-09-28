@@ -1,3 +1,13 @@
+"""
+Training a neural network to play a board game.
+
+This module defines methods for training a neural network to play a board game, defined by specifying a game environment. The methods are:
+    - self_play_game: method for neural net to play against itself
+    - train: method for training a neural net to become better at a board game.
+      Uses the mcts module, for Monte Carlo Tree Search.
+"""
+
+
 from network import Network
 from protocols import EnvProtocol
 from two_kings import EnvTwoKings, action_mask
