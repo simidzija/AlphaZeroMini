@@ -1,6 +1,6 @@
 # AlphaZero Mini
 
-AlphaZero Mini is a project that implements a simplified version of the AlphaZero algorithm to train a neural network to play board games via self-play and reinforcement learning.
+AlphaZero Mini is a project that implements a simplified version of the [AlphaZero](https://arxiv.org/abs/1712.01815) algorithm to train a neural network to play board games via self-play and reinforcement learning.
 
 ## Overview
 
