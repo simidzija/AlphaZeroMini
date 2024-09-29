@@ -1,7 +1,8 @@
 """
 Training a neural network to play a board game.
 
-This module defines methods for training a neural network to play a board game, defined by specifying a game environment. The methods are:
+This module defines methods for training a neural network to play a board game, 
+defined by specifying a game environment. The methods are:
     - self_play_game: method for neural net to play against itself
     - train: method for training a neural net to become better at a board game.
       Uses the mcts module, for Monte Carlo Tree Search.
@@ -112,7 +113,8 @@ def train(env: EnvProtocol,
         - losses_pol_black: CE losses from policy head on black's moves
         - losses_pol_white: CE losses from policy head on white's moves
         - losses_val: MSE losses from value head
-        - win_frac_list: fraction of training games that resulted in a win for either player    
+        - win_frac_list: fraction of training games that resulted in a win for 
+          either player    
     """
         
     assert buffer_size >= batch_size

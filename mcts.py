@@ -1,7 +1,8 @@
 """
 Monte Carlo Tree Search.
 
-This module defines classes and methods for implementing Monte Carlo Tree Search (MCTS). It includes:
+This module defines classes and methods for implementing Monte Carlo Tree 
+Search (MCTS). It includes:
     - Tree: class for MCTS trees
     - Node: class for nodes within an MCTS Tree
     - mcts: method for performing MCTS simulations on a Tree
@@ -136,7 +137,8 @@ class Tree:
 
         # go from root to leaf
         while current.children:
-            # Take path which maximizes Q_color + U, where Q_color is Q when the current player is black, and -Q if white. 
+            # Take path which maximizes Q_color + U, where Q_color is Q when 
+            # the current player is black, and -Q if white. 
             max_Q_plus_U = -float('inf')
             for child in current.children:
                 edge = current.children[child]
@@ -145,7 +147,8 @@ class Tree:
                 Q_color = edge['Q'] if current.color == 'black' else -edge['Q']
                 sum_N = current.sum_N
                 if current.sum_N == 0:
-                    # the first time we explore actions from a node just take action with highest prior
+                    # the first time we explore actions from a node just take 
+                    # action with highest prior
                     U = P
                 else:
                     # otherwise use the PUCT formula from AlphaGo Zero appendix

@@ -1,7 +1,8 @@
 """
 Neural network for board games.
 
-This module implements a convolutional neural network with the AlphaZero architecture. Specifically, the following classes are defined:
+This module implements a convolutional neural network with the AlphaZero 
+architecture. Specifically, the following classes are defined:
     - ResBlock: class implementing two convolutional layers with a skip
       connection between them
     - PolicyHead: class for the policy head
@@ -115,7 +116,8 @@ class Network(nn.Module):
             nn.ReLU()
         )
 
-        self.res_blocks = nn.ModuleList([ResBlock(num_filters, kernel_size) for _ in range(num_res_blocks)])
+        self.res_blocks = nn.ModuleList([ResBlock(num_filters, kernel_size) for 
+                                         _ in range(num_res_blocks)])
 
         self.policy_head = PolicyHead(
             board_size=board_size,
@@ -171,7 +173,8 @@ class Network(nn.Module):
         """Take state, produce action dist, sample greedily from dist.
         
         :param state: tensor of shape (b,i,s,s)
-        :return action: tensor of shape (b,3) corresponding to 3 indices (output plane, row, column)
+        :return action: tensor of shape (b,3) corresponding to 3 indices 
+            (output plane, row, column)
 
         Where:
             b = batch size
