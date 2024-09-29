@@ -125,7 +125,6 @@ def train(env: EnvProtocol,
 
     # logging
     losses_tot = []
-    # losses_pol = []
     losses_pol_black = []
     losses_pol_white = []
     losses_val = []
@@ -238,14 +237,14 @@ if __name__ == '__main__':
         n_games_per_batch=5,
         buffer_size=50, # should be < games * (least possible states/game)
         batch_size=50, # should be <= buffer_size
-        n_simulations=100,
-        learning_rate=0.01,
+        n_simulations=200,
+        learning_rate=0.02,
         c_weight_decay=0.0,
         c_puct=0.5, # higher value favours prior probabilities
         temp=1.0, # higher value means more exploration
         alpha_dir=0.5, # higher value means more exploration
         eps_dir=0.25, # higher value means more exploration
-        checkpoint_interval=100 # should be an O(1) fraction of n_batches
+        checkpoint_interval=10 # should be an O(1) fraction of n_batches
     )
 
     plt.plot(losses, label='loss')

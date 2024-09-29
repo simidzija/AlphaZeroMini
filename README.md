@@ -1,30 +1,23 @@
-## Two Kings
+# AlphaZero Mini
 
-A black king and a white king are initialized on opposite ends of a 5 by 5 board. They can only move forwards, backwards, left and right (not diagonally), and they're allowed to get next to and take each other. The player who takes his opponents king wins the game. If no one wins after 10 moves the game is a draw. Perfect play results in a black win in 5 moves.
+AlphaZero Mini is a project that implements a simplified version of the AlphaZero algorithm to train a neural network to play board games via self-play and reinforcement learning.
 
-### Input features 
-4 planes of size $5\times 5$. The planes correspond to:
-1) P1 position: one-hot 
-2) P2 position: one-hot
-3) Color: constant (-1 for white, 1 for black)
-3) Move count: constant
+## Overview
 
-### Action features 
-4 planes of size $5\times 5 = 100$ possible actions. The planes correspond to:
-1) Move up
-2) Move down
-3) Move left
-4) Move right
-The value of a square in plane i indicates the probability (or logit) for the piece in that square to move in direction i. 
-Note that with this representation most moves are illegal.
+This project provides a framework for training an AI to play board games using the core principles of the AlphaZero algorithm. It includes a neural network architecture, Monte Carlo Tree Search implementation, and a training pipeline. As a demonstration, it comes with a simple chess-like game called "Two Kings" that can be played against the trained AI.
 
-### Legal moves
-Given input features, we can determine the legal moves in the following way:
-1) Look at P1 plane to determine position of king
-3) Only this location is allowed in the action planes
-4) The location also determines which of four action planes are allowed
-In total only 2,3, or 4 out of the 100 possible actions are legal; the rest are illegal.
+## Main Components
 
-### TODO
-- Fix Env.step() so that color changes correctly when someone wins (needed for Tree.__str__() to print correct move)
-- Understand why training in 3x3 game collapses to 1. Kb2 Kb2. 
+- [network.py](network.py): Defines the convolutional neural network architecture used for game play. The network includes both a policy head and a value head.
+- [mcts.py](mcts.py): Implements the Monte Carlo Tree Search algorithm used by AlphaZero during both training and inference.
+- [train.py](train.py): Contains the code for training the neural network through self-play and reinforcement learning.
+- [two_kings.py](two_kings.py): Provides a board game environment for a simplified version of chess with only two kings on a 5x5 board. This module can also be run as a script to play against the trained AI via a GUI.
+
+## Two Kings Game
+
+The Two Kings game is a simplified chess variant used to demonstrate the capabilities of the AlphaZero Mini system. The game is played between two kings on a 5 by 5 board. The kings can only move horizontally and vertically, and the objective is simply to take your opponent's king. If no one wins in 10 moves the game is declared a draw. Perfect play results in a black win in 5 moves. Here's what the game looks like:
+
+![Two Kings Game](two_kings.png)
+
+
+

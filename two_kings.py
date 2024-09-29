@@ -330,10 +330,21 @@ def play(net: Network, n_simulations: int, print_move: bool=True):
         window.fill(DARK_BROWN)
 
         title = font_large.render("TWO KINGS", True, WHITE)
-        window.blit(title, (WIDTH/2 - title.get_width()/2, 0.2 * HEIGHT))
+        window.blit(title, (WIDTH/2 - title.get_width()/2, 0.1 * HEIGHT))
+
+        instructions1 = font.render("GAME RULES:", True, WHITE)
+        instructions2 = font.render("  - Take your opponent's king", True, WHITE)
+        instructions3 = font.render("  - You may only move left, right, up, down", True, WHITE)
+        instructions4 = font.render("  - After 10 moves the game is a draw", True, WHITE)
+        instructions_width = WIDTH/2 - instructions3.get_width()/2
+
+        # window.blit(instructions1, (instructions_width, 0.2 * HEIGHT))
+        window.blit(instructions2, (instructions_width, 0.2 * HEIGHT))
+        window.blit(instructions3, (instructions_width, 0.23 * HEIGHT))
+        window.blit(instructions4, (instructions_width, 0.26 * HEIGHT))
 
         color_prompt = font.render("CHOOSE YOUR COLOUR:", True, WHITE)
-        window.blit(color_prompt, (WIDTH/2 - title.get_width()/2, 0.3 * HEIGHT))
+        window.blit(color_prompt, (WIDTH/2 - color_prompt.get_width()/2, 0.35 * HEIGHT))
 
         x_white = 0.5 * WIDTH - SQUARE_SIZE
         y_white = 0.5 * HEIGHT - SQUARE_SIZE / 2
